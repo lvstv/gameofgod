@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Симуляция переноса свойства: шаг 2</title>
+<title>Лаборатория итерационной модели</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -17,23 +17,28 @@
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 20px 16px 48px; background: var(--bg); color: var(--ink);
+  body { margin: 0; padding: 20px 16px 56px; background: var(--bg); color: var(--ink);
     font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 760px; margin: 0 auto; }
+  main { max-width: 780px; margin: 0 auto; }
   h1 { font: 600 28px/1.25 "Iowan Old Style", Georgia, serif; margin: 0 0 8px; }
   h2 { font: 600 19px/1.3 "Iowan Old Style", Georgia, serif; margin: 28px 0 8px; }
+  h3 { font: 600 16px/1.3 system-ui, sans-serif; margin: 16px 0 4px; }
   p { margin: 0 0 10px; }
   .muted { color: var(--muted); font-size: 14px; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .group { font-weight: 600; margin: 0 0 8px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; margin-bottom: 14px; }
   label { display: block; font-size: 14px; color: var(--muted); }
-  input { width: 100%; margin-top: 4px; padding: 8px 10px; font: inherit; color: var(--ink);
+  input, select { width: 100%; margin-top: 4px; padding: 8px 10px; font: inherit; color: var(--ink);
     background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
-  input:focus-visible, button:focus-visible { outline: 2px solid var(--sim); outline-offset: 2px; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 6px; cursor: pointer;
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--sim); outline-offset: 2px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; font-weight: 600; padding: 9px 18px; border-radius: 6px; cursor: pointer;
     border: 1px solid var(--sim); background: var(--sim); color: var(--bg); }
   button.second { background: transparent; color: var(--sim); }
+  button:disabled { opacity: 0.55; cursor: progress; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 12px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--sim); transition: width 0.15s; }
   canvas { width: 100%; height: 320px; display: block; }
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; margin-top: 8px; }
   .sw { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; }
@@ -45,71 +50,176 @@
   th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
   th:first-child, td:first-child { text-align: left; }
   .scroll { overflow-x: auto; }
-  .tag { font-size: 13px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+  td.hm { text-align: center; }
+  .tag { font-size: 13px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); white-space: nowrap; }
+  ul { margin: 0 0 10px; padding-left: 20px; }
+  .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .scenes { grid-template-columns: 1fr; } }
+  canvas.scene { height: 260px; }
+  #lchart { height: 240px; margin-top: 12px; }
+  .cap { font-size: 14px; margin-bottom: 4px; }
+  input[type=range] { padding: 0; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Какой перенос можно отличить от шума</h1>
-  <p class="muted">Шаг 2 симуляции. Рядом с переносом показана нулевая модель (свойство не переносится вовсе) и зона шума. Страница отвечает на вопрос: при заданном числе сущностей, какой слабый перенос ещё заметен, а какой тонет в случайности.</p>
+  <h1>Лаборатория итерационной модели</h1>
+  <p class="muted">Здесь отдельные механизмы итерационной модели проверяются на симуляции. Сверху живая сцена, ниже одна кнопка запускает серию расчётов в фоне. Что происходит, объяснено простыми словами внизу страницы.</p>
+  <div class="panel" style="margin-top:12px">
+    <p class="group">Что уже есть и что в планах</p>
+    <ul style="margin:0">
+      <li><span class="tag">работает</span> Перенос свойства между итерациями, нулевая модель, зона шума</li>
+      <li><span class="tag">работает</span> Живая сцена: два мира рядом</li>
+      <li><span class="tag">работает</span> Карта обнаружимости: какой перенос вообще заметен</li>
+      <li><span class="tag">работает</span> Сообщение между уровнями: сигнал, похожий на шум</li>
+      <li><span class="tag">в планах</span> Тёмные кванты как канал в момент «смерти»</li>
+      <li><span class="tag">в планах</span> Создатель колб: перемешивание и перенос между сущностями</li>
+      <li><span class="tag">в планах</span> Ветвление и слияние ветвей, «связность мира»</li>
+    </ul>
+  </div>
 
   <div class="panel" style="margin-top:16px">
+    <p class="group">Перенос свойства</p>
     <div class="controls">
-      <label>Сохранение ρ<input id="rho" type="number" min="0" max="0.999" step="0.01" value="0.8"></label>
-      <label>Шум σ<input id="sigma" type="number" min="0.01" max="10" step="0.1" value="1"></label>
-      <label>Сущностей N<input id="n" type="number" min="50" max="20000" step="50" value="2000"></label>
-      <label>Итераций K<input id="k" type="number" min="2" max="100" step="1" value="20"></label>
-      <label>Шаг для теста<input id="kt" type="number" min="1" max="100" step="1" value="1"></label>
+      <label>Сохранение ρ (0–0,999)<input id="rho" type="number" min="0" max="0.999" step="0.01" value="0.8"></label>
+      <label>Шум σ (0,01–10)<input id="sigma" type="number" min="0.01" max="10" step="0.1" value="1"></label>
+      <label>Сущностей N (50–20000)<input id="n" type="number" min="50" max="20000" step="50" value="2000"></label>
+      <label>Итераций K (2–100)<input id="k" type="number" min="2" max="100" step="1" value="20"></label>
+      <label>Итерация для теста<input id="kt" type="number" min="1" max="100" step="1" value="1"></label>
       <label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="12345"></label>
     </div>
+    <p class="group">Сообщение между уровнями</p>
+    <div class="controls">
+      <label>Размер, байт (1024–65536)<input id="mlen" type="number" min="1024" max="65536" step="1024" value="4096"></label>
+      <label>Тип сообщения<select id="mtype"><option value="text">Текст</option><option value="pattern">Повторяющийся узор</option><option value="signal">Синусоида</option></select></label>
+      <label>Длина ключа, байт<input id="klen" type="number" min="1" max="65536" step="1" value="4096"></label>
+      <label>Seed ключа<input id="kseed" type="number" min="0" max="4294967295" step="1" value="777"></label>
+    </div>
     <div class="row">
-      <button id="run" type="button">Запустить</button>
-      <button id="rnd" type="button" class="second">Другой seed</button>
+      <button id="run" type="button">Запустить всё</button>
+      <button id="rnd" type="button" class="second">Другие seed и запуск</button>
+      <span id="status" class="muted"></span>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+    <p class="muted" style="margin:10px 0 0">Расчёт идёт на вашем компьютере в фоновом потоке, страница не зависает. Максимальные значения полей ограничены, чтобы браузер справлялся.</p>
+  </div>
+
+  <h2>Живая сцена: два мира</h2>
+  <div class="panel">
+    <p class="muted">Каждая точка это линия сущностей с одним свойством. Цвет задан исходным значением и не меняется, высота показывает значение сейчас. Слева ничего не переносится, справа свойство частично сохраняется, а случайные добавки в обоих мирах одинаковые. Если справа цвета выстроены по диагонали, перенос виден. Используются ρ, число итераций и seed из панели выше.</p>
+    <div class="scenes">
+      <div><div class="cap"><b>Нулевой мир</b> (ничего не переносится) · связь <span id="lrA">1,000</span></div><canvas id="cvA" class="scene" role="img" aria-label="Нулевой мир: сущности без переноса"></canvas></div>
+      <div><div class="cap"><b>Мир с переносом</b> · связь <span id="lrB">1,000</span></div><canvas id="cvB" class="scene" role="img" aria-label="Мир с переносом свойства"></canvas></div>
+    </div>
+    <canvas id="lchart" role="img" aria-label="Связь с исходным значением по итерациям в обоих мирах"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--sim)"></span>Мир с переносом</span>
+      <span><span class="sw" style="background:var(--muted)"></span>Нулевой мир</span>
+      <span><span class="sw" style="background:var(--theory)"></span>Расчёт по формуле</span>
+      <span><span class="sw" style="background:var(--ok)"></span>Остаток (с переносом минус без)</span>
+      <span><span class="sw" style="background:var(--line);height:10px"></span>Зона шума</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="muted">Итерация</span><b id="lt">0</b></div>
+      <div class="stat"><span class="muted">Остаток сейчас</span><b id="lres">0,000</b></div>
+      <div class="stat"><span class="muted">Состояние</span><b id="lst" style="font-size:17px">—</b></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="lplay" type="button">Пауза</button>
+      <button id="lreset" type="button" class="second">Сначала</button>
+      <label style="width:130px">Популяция (50–1000)<input id="lpop" type="number" min="50" max="1000" step="50" value="300"></label>
+      <label style="flex:1;min-width:170px">Скорость: <span id="lsp">3</span> ит./с<input id="lspeed" type="range" min="1" max="12" step="1" value="3"></label>
     </div>
   </div>
 
-  <h2>Корреляция с исходным значением</h2>
+  <h2>Затухание переноса</h2>
   <div class="panel">
     <canvas id="chart" role="img" aria-label="График корреляции с переносом, без переноса и зона шума"></canvas>
     <div class="legend">
       <span><span class="sw" style="background:var(--sim)"></span>С переносом (симуляция)</span>
-      <span><span class="sw" style="background:var(--theory)"></span>Формула ρ^k</span>
+      <span><span class="sw" style="background:var(--theory)"></span>Расчёт по формуле</span>
       <span><span class="sw" style="background:var(--muted)"></span>Без переноса</span>
       <span><span class="sw" style="background:var(--line);height:10px"></span>Зона шума (95 %)</span>
     </div>
     <div id="check" class="check"></div>
   </div>
 
-  <h2>Порог различимости</h2>
+  <h2>Что можно заметить</h2>
   <div class="panel">
     <div class="stats">
-      <div class="stat"><span class="muted">Заметная корреляция (95 %)</span><b id="rc">—</b></div>
-      <div class="stat"><span class="muted">Заметна в 80 % случаев</span><b id="r80">—</b></div>
-      <div class="stat"><span class="muted">Шаг, где перенос тонет в шуме</span><b id="drown">—</b></div>
+      <div class="stat"><span class="muted">Заметная связь (95 %)</span><b id="rc">—</b></div>
+      <div class="stat"><span class="muted">Надёжно заметная связь (80 %)</span><b id="r80">—</b></div>
+      <div class="stat"><span class="muted">Итерация, где перенос тонет в шуме</span><b id="drown">—</b></div>
       <div class="stat"><span class="muted">Ложные срабатывания без переноса</span><b id="fp">—</b></div>
-      <div class="stat"><span class="muted">Мощность: перенос найден</span><b id="pw">—</b></div>
+      <div class="stat"><span class="muted">Перенос найден (мощность)</span><b id="pw">—</b></div>
       <div class="stat"><span class="muted">Минимальный ρ для теста</span><b id="rmin">—</b></div>
     </div>
     <p class="muted" id="mcnote" style="margin-top:12px"></p>
+    <div class="scroll" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Итерация</th><th>Связь (симуляция)</th><th>Связь (формула)</th><th>p (перестановки)</th><th>Вывод</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
 
-  <h2>Таблица по шагам</h2>
-  <div class="panel scroll">
-    <table>
-      <thead><tr><th>Шаг k</th><th>r (симуляция)</th><th>ρ^k (формула)</th><th>p (перестановки)</th><th>Вывод</th></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
+  <h2>Карта обнаружимости</h2>
+  <div class="panel">
+    <p class="muted">В какой доле повторных запусков перенос был бы замечен. Строки: сила сохранения ρ. Столбцы: число сущностей N. Чем насыщеннее клетка, тем надёжнее заметен перенос. Итерация для теста берётся из полей выше.</p>
+    <div class="scroll"><table id="heat"></table></div>
   </div>
 
-  <h2>Что здесь формализм, а что допущение</h2>
-  <p><span class="tag">установлено</span> Для N пар значений случайная корреляция имеет разброс около 1/√N. Порог значимости 95 % равен tanh(1,96/√(N−3)) (преобразование Фишера), порог для мощности 80 % равен tanh(2,80/√(N−3)). Перестановочный тест не требует формул: значения перемешиваются, и смотрим, как часто случайная корреляция не меньше наблюдаемой.</p>
-  <p><span class="tag">установлено</span> Корреляция не зависит от масштаба, поэтому σ влияет только на размах значений, а не на результаты этой страницы.</p>
-  <p><span class="tag">допущение модели</span> Что перенос свойства между итерациями есть и устроен именно так. Страница показывает лишь, при каких условиях такой перенос вообще можно было бы заметить.</p>
-  <p class="muted">Ложные срабатывания и мощность оцениваются по многим повторным прогонам с известной истиной. Если ложных срабатываний заметно больше 5 %, ошибка в самом тесте.</p>
+  <h2>Сообщение между уровнями</h2>
+  <div class="panel">
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Что проверяем</th><th>Энтропия, бит/байт (макс. 8)</th><th>χ² (ожидаем около 255)</th><th>Автокорреляция</th><th>Размер после сжатия</th></tr></thead>
+        <tbody id="tb3"></tbody>
+      </table>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="muted">Связь текста и шифротекста</span><b id="c3">—</b></div>
+      <div class="stat"><span class="muted">Шифротексты, помеченные «не шум»</span><b id="fc">—</b></div>
+      <div class="stat"><span class="muted">Настоящий шум, помеченный «не шум»</span><b id="fn">—</b></div>
+      <div class="stat"><span class="muted">Верный ключ: восстановлено</span><b id="rk">—</b></div>
+      <div class="stat"><span class="muted">Неверный ключ: совпало</span><b id="wk">—</b></div>
+    </div>
+    <div id="verdict3" class="check"></div>
+  </div>
+
+  <h2>Что здесь происходит</h2>
+  <div class="panel">
+    <h3 style="margin-top:0">Перенос свойства</h3>
+    <p>У каждой из N сущностей есть одно число, её свойство. При переходе к следующей итерации оно сохраняется не полностью: часть остаётся, часть заменяется случайностью. Параметр сохранения показывает, какая часть остаётся: при 0 всё стирается, при значениях около 1 свойство почти не меняется. Страница смотрит, насколько связь с исходным значением переживает серию таких переходов.</p>
+    <h3>Живая сцена</h3>
+    <p>Два мира стартуют с одинаковой популяцией и получают одинаковые случайные добавки. Различие одно: в нулевом мире на каждой итерации значение заменяется случайным (память стёрта полностью), а в мире с переносом часть прежнего значения сохраняется. Точки скользят на новую высоту, а цвет напоминает, откуда они начинали. В нулевом мире цветовой порядок рассыпается сразу, в мире с переносом он держится и постепенно размывается. Внизу растёт линия связи с исходным значением для обоих миров, и между ними остаток: он показывает, чем перенос отличается от одной лишь случайности.</p>
+    <h3>Нулевая модель и зона шума</h3>
+    <p>Нулевая модель это та же картина, но без сохранения: так выглядит ситуация, когда ничего не переносится. Даже тогда случайность иногда создаёт слабую связь. Серый коридор вокруг нуля показывает, как далеко такая случайная связь заходит. Пока линия переноса выше коридора, связь можно считать реальной. Когда она опускается внутрь коридора, отличить её от случайной нельзя.</p>
+    <h3>Ложные срабатывания и мощность</h3>
+    <p>Это проверка самого способа проверки. Без переноса тест не должен «находить» связь чаще, чем в 5 % запусков. А настоящий перенос на пороге должен находиться примерно в 80 %. Если эти числа сошлись, тест можно использовать, и страница действительно измеряет то, что заявляет.</p>
+    <h3>Карта обнаружимости</h3>
+    <p>Показывает сразу много сочетаний: слабый и сильный перенос, мало и много сущностей. Она отвечает на практический вопрос: сколько нужно данных, чтобы увидеть перенос заданной силы. Слабый перенос при малой выборке остаётся невидимым, даже если он есть.</p>
+    <h3>Сообщение между уровнями</h3>
+    <p>Один уровень отправляет сообщение другому, зашифровав его случайным ключом. Страница проверяет, можно ли по статистике отличить такой сигнал от настоящего шума. Если ключ случаен и не короче сообщения, нельзя. Если ключ короче и повторяется, закономерность проступает, и сигнал виден. Неотличимость от шума значит, что изнутри сигнал нельзя ни подтвердить, ни опровергнуть, поэтому это граница модели, а не довод в её пользу.</p>
+    <h3>Чего страница не делает</h3>
+    <p>Она не говорит о реальном мире. Она показывает, что следует из заданных правил и при каких условиях заданный эффект вообще можно было бы заметить.</p>
+
+    <h2 style="margin-top:24px">Формализм и статусы</h2>
+    <ul>
+      <li><span class="tag">установлено</span> Перенос: авторегрессия первого порядка x(t+1) = ρ·x(t) + ε, ε с дисперсией σ². При стационарном старте корреляция через k итераций равна ρ^k, период полураспада ln(0,5)/ln(ρ).</li>
+      <li><span class="tag">установлено</span> Живая сцена: мир с переносом x(t+1) = ρ·x(t) + σ·ε, нулевой мир x(t+1) = s·ε, где s стационарный разброс σ/√(1−ρ²), ε общие для обоих миров. Остаток равен разности корреляций с исходным значением. Зона шума построена для размера популяции сцены.</li>
+      <li><span class="tag">установлено</span> Порог значимости 95 %: tanh(1,96/√(N−3)). Порог мощности 80 %: tanh(2,80/√(N−3)) (преобразование Фишера). Корреляция не зависит от масштаба, поэтому σ не влияет на результаты.</li>
+      <li><span class="tag">установлено</span> Перестановочный тест: значения перемешиваются, p это доля перемешиваний, где случайная связь не меньше наблюдаемой.</li>
+      <li><span class="tag">установлено</span> Ложные срабатывания и мощность оцениваются многими повторными прогонами с известной истиной (метод Монте-Карло). Для карты в каждой клетке 120 прогонов.</li>
+      <li><span class="tag">установлено</span> Шифрование: XOR с ключом. Теорема Шеннона о совершенной секретности: при случайном независимом ключе не короче сообщения шифротекст статистически независим от сообщения. Для проверки на шум используются энтропия, статистика χ² (255 степеней свободы), автокорреляция и сжатие deflate.</li>
+      <li><span class="tag">допущение модели</span> Что перенос свойств между итерациями есть и устроен именно так, и что связь между уровнями устроена как шифрование. Страница это не проверяет.</li>
+      <li><span class="tag">оговорка</span> Генератор случайных чисел (mulberry32) воспроизводим по seed, поэтому один и тот же seed всегда даёт один и тот же результат. Ключ из него годится для тестов на шум, но не обеспечивает настоящей секретности: в принципе его можно вычислить по seed, статистические тесты этого просто не видят.</li>
+    </ul>
+  </div>
 </main>
 
-<script>
-// ---------- Генератор случайных чисел с seed (mulberry32) ----------
+<!-- Код расчётов: выполняется в фоновом потоке (Web Worker) -->
+<script id="wsrc" type="text/plain">
 function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -118,7 +228,6 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-// ---------- Нормальное распределение (Бокс-Мюллер) ----------
 function makeNormal(rnd) {
   return function () {
     let u = 0;
@@ -126,7 +235,6 @@ function makeNormal(rnd) {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd());
   };
 }
-// ---------- Корреляция Пирсона ----------
 function pearson(a, b) {
   const n = a.length; let ma = 0, mb = 0;
   for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
@@ -138,8 +246,7 @@ function pearson(a, b) {
   }
   return sab / Math.sqrt(saa * sbb);
 }
-// ---------- Симуляция переноса: x(t+1) = rho * x(t) + шум ----------
-// keep: список шагов, значения на которых нужно сохранить для перестановочного теста
+// Перенос: x(t+1) = rho * x(t) + шум. keep: итерации, значения которых сохраняем для перестановочного теста.
 function simulate(rho, sigma, N, K, seed, keep) {
   const randn = makeNormal(mulberry32(seed));
   const sd0 = sigma / Math.sqrt(1 - rho * rho);
@@ -153,11 +260,8 @@ function simulate(rho, sigma, N, K, seed, keep) {
   }
   return { r: r, x0: x0, snaps: snaps };
 }
-// ---------- Пороги значимости (преобразование Фишера) ----------
 const rCrit = (N) => Math.tanh(1.96 / Math.sqrt(N - 3));
 const r80 = (N) => Math.tanh(2.8016 / Math.sqrt(N - 3));
-// ---------- Перестановочный тест ----------
-// p = доля перемешиваний, где случайная корреляция не меньше наблюдаемой
 function permP(x0, xk, rObs, P, rnd) {
   const n = x0.length, y = Float64Array.from(xk), a = Math.abs(rObs);
   let cnt = 0;
@@ -169,49 +273,152 @@ function permP(x0, xk, rObs, P, rnd) {
   }
   return (cnt + 1) / (P + 1);
 }
-// ---------- Много повторных прогонов с известной истиной ----------
-// Для шага k: без переноса (ложные срабатывания) и с переносом rho^k (мощность)
-function monteCarlo(rho, k, N, M, seed) {
+// Повторные прогоны с известной истиной: связь rk между парами значений.
+function oneRun(randn, rk, s, N, withTransfer) {
+  let sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
+  for (let i = 0; i < N; i++) {
+    const a = randn(), b = withTransfer ? rk * a + s * randn() : randn();
+    sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
+  }
+  const cov = sab - sa * sb / N, va = saa - sa * sa / N, vb = sbb - sb * sb / N;
+  return cov / Math.sqrt(va * vb);
+}
+function monteCarlo(rho, k, N, M, seed, withNull) {
   const randn = makeNormal(mulberry32(seed));
   const rk = Math.pow(rho, k), s = Math.sqrt(1 - rk * rk), rc = rCrit(N);
-  function oneRun(withTransfer) {
-    let sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
-    for (let i = 0; i < N; i++) {
-      const a = randn(), b = withTransfer ? rk * a + s * randn() : randn();
-      sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
-    }
-    const cov = sab - sa * sb / N, va = saa - sa * sa / N, vb = sbb - sb * sb / N;
-    return cov / Math.sqrt(va * vb);
-  }
   let fp = 0, hit = 0;
   for (let m = 0; m < M; m++) {
-    if (Math.abs(oneRun(false)) > rc) fp++;
-    if (Math.abs(oneRun(true)) > rc) hit++;
+    if (withNull && Math.abs(oneRun(randn, rk, s, N, false)) > rc) fp++;
+    if (Math.abs(oneRun(randn, rk, s, N, true)) > rc) hit++;
   }
   return { fp: fp / M, power: hit / M };
 }
+// Сообщение и шифрование
+function makePlain(type, L) {
+  const b = new Uint8Array(L);
+  if (type === 'text') {
+    const t = new TextEncoder().encode('Сигнал вышестоящего уровня. ');
+    for (let i = 0; i < L; i++) b[i] = t[i % t.length];
+  } else if (type === 'pattern') {
+    for (let i = 0; i < L; i++) b[i] = i % 16;
+  } else {
+    for (let i = 0; i < L; i++) b[i] = Math.round(127.5 + 100 * Math.sin(2 * Math.PI * i / 32));
+  }
+  return b;
+}
+function randBytes(len, seed) {
+  const rnd = mulberry32(seed), k = new Uint8Array(len);
+  for (let i = 0; i < len; i++) k[i] = Math.floor(rnd() * 256);
+  return k;
+}
+function xorWith(data, key) {
+  const out = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) out[i] = data[i] ^ key[i % key.length];
+  return out;
+}
+function entropyBits(b) {
+  const c = new Float64Array(256);
+  for (let i = 0; i < b.length; i++) c[b[i]]++;
+  let h = 0;
+  for (let v = 0; v < 256; v++) if (c[v] > 0) { const q = c[v] / b.length; h -= q * Math.log2(q); }
+  return h;
+}
+function chi2(b) {
+  const c = new Float64Array(256), e = b.length / 256;
+  for (let i = 0; i < b.length; i++) c[b[i]]++;
+  let x = 0;
+  for (let v = 0; v < 256; v++) x += (c[v] - e) * (c[v] - e) / e;
+  return x;
+}
+const flagged = (x) => Math.abs(x - 255) / Math.sqrt(510) > 1.96;
+const lag1 = (b) => pearson(b.subarray(0, b.length - 1), b.subarray(1));
+async function deflatedRatio(bytes) {
+  if (typeof CompressionStream === 'undefined') return null;
+  const cs = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+  return (await new Response(cs).arrayBuffer()).byteLength / bytes.length;
+}
+const same = (a, b) => { let m = 0; for (let i = 0; i < a.length; i++) if (a[i] === b[i]) m++; return m / a.length; };
 
-// ---------- Вспомогательное ----------
+onmessage = async function (e) {
+  const p = e.data, post = (pct, label) => postMessage({ type: 'progress', pct: pct, label: label });
+  const res = { p: p };
+
+  post(3, 'Перенос и нулевая модель');
+  const steps = [...new Set([1, 2, 3, 5, 10, 20, 50, p.K, p.kt].filter((k) => k <= p.K))].sort((a, b) => a - b);
+  const sim = simulate(p.rho, p.sigma, p.N, p.K, p.seed, steps);
+  res.nul = simulate(0, p.sigma, p.N, p.K, p.seed + 1, []).r;
+  res.r = sim.r;
+  res.theory = sim.r.map((_, k) => Math.pow(p.rho, k));
+  res.rc = rCrit(p.N); res.r80 = r80(p.N);
+  let allOk = true;
+  for (let k = 1; k <= p.K; k++) {
+    const se = (1 - res.theory[k] * res.theory[k]) / Math.sqrt(p.N);
+    if (Math.abs(sim.r[k] - res.theory[k]) > 4 * se + 1e-9) allOk = false;
+  }
+  res.allOk = allOk;
+  res.drown = res.theory.findIndex((v, k) => k > 0 && v < res.rc);
+
+  post(15, 'Перестановочный тест');
+  const P = p.N <= 5000 ? 500 : 200, rnd = mulberry32(p.seed + 2);
+  res.rows = steps.map((k) => ({ k: k, r: sim.r[k], th: res.theory[k], pv: permP(sim.x0, sim.snaps[k], sim.r[k], P, rnd) }));
+
+  post(35, 'Ложные срабатывания и мощность');
+  res.M = p.N <= 5000 ? 400 : 150;
+  res.mc = monteCarlo(p.rho, p.kt, p.N, res.M, p.seed + 3, true);
+
+  const rhos = [0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8], Ns = [100, 300, 1000, 3000, 10000];
+  res.heat = { rhos: rhos, Ns: Ns, power: [] };
+  for (let i = 0; i < rhos.length; i++) {
+    post(45 + Math.round(35 * i / rhos.length), 'Карта обнаружимости');
+    res.heat.power.push(Ns.map((N, j) => monteCarlo(rhos[i], p.kt, N, 120, p.seed + 10 + i * 10 + j, false).power));
+  }
+
+  post(82, 'Сообщение между уровнями');
+  const plain = makePlain(p.mtype, p.mlen), key = randBytes(p.klen, p.kseed);
+  const cipher = xorWith(plain, key), noise = randBytes(p.mlen, p.kseed + 7777);
+  const items = [['Открытое сообщение', plain], ['Шифротекст', cipher], ['Эталон: случайный шум', noise]];
+  const ratios = await Promise.all(items.map((it) => deflatedRatio(it[1])));
+  res.cipherRows = items.map((it, i) => ({ name: it[0], H: entropyBits(it[1]), chi: chi2(it[1]), lag: lag1(it[1]), ratio: ratios[i] }));
+  res.c3 = pearson(plain, cipher);
+  const T = 200; let fc = 0, fn = 0;
+  for (let t = 0; t < T; t++) {
+    if (flagged(chi2(xorWith(plain, randBytes(p.klen, p.kseed + 100 + t))))) fc++;
+    if (flagged(chi2(randBytes(p.mlen, p.kseed + 5000 + t)))) fn++;
+  }
+  res.fc = fc / T; res.fn = fn / T;
+  res.rk = same(plain, xorWith(cipher, key));
+  res.wk = same(plain, xorWith(cipher, randBytes(p.klen, p.kseed + 999)));
+  postMessage({ type: 'done', res: res });
+};
+</script>
+
+<script>
 const $ = (id) => document.getElementById(id);
 const fmt = (v, d = 3) => v.toFixed(d).replace('.', ',');
 const pct = (v) => fmt(v * 100, 1) + ' %';
+const num = (v, d) => (isNaN(v) ? '—' : fmt(v, d));
+let worker = null, last = null;
+
 function readParams() {
-  const clamp = (v, lo, hi, def) => (isNaN(v) ? def : Math.min(hi, Math.max(lo, v)));
+  const cl = (v, lo, hi, def) => (isNaN(v) ? def : Math.min(hi, Math.max(lo, v)));
   const p = {
-    rho: clamp(parseFloat($('rho').value), 0, 0.999, 0.8),
-    sigma: clamp(parseFloat($('sigma').value), 0.01, 10, 1),
-    N: Math.round(clamp(parseFloat($('n').value), 50, 20000, 2000)),
-    K: Math.round(clamp(parseFloat($('k').value), 2, 100, 20)),
-    seed: Math.round(clamp(parseFloat($('seed').value), 0, 4294967295, 12345))
+    rho: cl(parseFloat($('rho').value), 0, 0.999, 0.8),
+    sigma: cl(parseFloat($('sigma').value), 0.01, 10, 1),
+    N: Math.round(cl(parseFloat($('n').value), 50, 20000, 2000)),
+    K: Math.round(cl(parseFloat($('k').value), 2, 100, 20)),
+    seed: Math.round(cl(parseFloat($('seed').value), 0, 4294967295, 12345)),
+    mlen: Math.round(cl(parseFloat($('mlen').value), 1024, 65536, 4096)),
+    klen: Math.round(cl(parseFloat($('klen').value), 1, 65536, 4096)),
+    kseed: Math.round(cl(parseFloat($('kseed').value), 0, 4294967295, 777)),
+    mtype: $('mtype').value
   };
-  p.kt = Math.round(clamp(parseFloat($('kt').value), 1, p.K, 1));
-  $('rho').value = p.rho; $('sigma').value = p.sigma; $('n').value = p.N;
-  $('k').value = p.K; $('kt').value = p.kt; $('seed').value = p.seed;
+  p.kt = Math.round(cl(parseFloat($('kt').value), 1, p.K, 1));
+  $('rho').value = p.rho; $('sigma').value = p.sigma; $('n').value = p.N; $('k').value = p.K;
+  $('kt').value = p.kt; $('seed').value = p.seed; $('mlen').value = p.mlen;
+  $('klen').value = p.klen; $('kseed').value = p.kseed;
   return p;
 }
 
-// ---------- График ----------
-let last = null;   // последний результат, чтобы перерисовывать без пересчёта
 function drawChart() {
   if (!last) return;
   const { r, theory, nul, rc } = last;
@@ -225,7 +432,6 @@ function drawChart() {
   const X = (k) => L + (k / K) * (w - L - R);
   const Y = (v) => { const c = Math.max(-0.2, Math.min(1, v)); return T + (1 - (c + 0.2) / 1.2) * (h - T - B); };
   g.clearRect(0, 0, w, h);
-  // зона шума
   g.globalAlpha = 0.6; g.fillStyle = col('--line');
   g.fillRect(L, Y(rc), w - L - R, Y(-rc) - Y(rc)); g.globalAlpha = 1;
   g.font = '12px system-ui, sans-serif'; g.fillStyle = col('--muted'); g.strokeStyle = col('--line'); g.lineWidth = 1;
@@ -246,55 +452,236 @@ function drawChart() {
   r.forEach((v, k) => { g.beginPath(); g.arc(X(k), Y(v), 3, 0, 6.2832); g.fill(); });
 }
 
-// ---------- Запуск ----------
-function run() {
-  const p = readParams();
-  const steps = [...new Set([1, 2, 3, 5, 10, 20, 50, p.K, p.kt].filter((k) => k <= p.K))].sort((a, b) => a - b);
-  const sim = simulate(p.rho, p.sigma, p.N, p.K, p.seed, steps);
-  const nul = simulate(0, p.sigma, p.N, p.K, p.seed + 1, []).r;   // нулевая модель: переноса нет
-  const theory = sim.r.map((_, k) => Math.pow(p.rho, k));
-  const rc = rCrit(p.N);
+function render(res) {
+  const p = res.p;
+  last = { r: res.r, theory: res.theory, nul: res.nul, rc: res.rc };
+  const c = $('check'); c.className = 'check ' + (res.allOk ? 'ok' : 'bad');
+  c.textContent = res.allOk ? 'Проверка пройдена: симуляция совпадает с расчётом по формуле в пределах шума.'
+                            : 'Проверка не пройдена: отклонение больше ожидаемого шума. Возможна ошибка в коде.';
+  $('rc').textContent = fmt(res.rc, 4);
+  $('r80').textContent = fmt(res.r80, 4);
+  $('drown').textContent = res.drown === -1 ? 'после ' + p.K : String(res.drown);
+  $('fp').textContent = pct(res.mc.fp);
+  $('pw').textContent = pct(res.mc.power);
+  $('rmin').textContent = fmt(Math.pow(res.r80, 1 / p.kt), 3);
+  $('mcnote').textContent = 'Итерация для теста: ' + p.kt + ', повторных прогонов: ' + res.M + '. Ложные срабатывания должны быть близки к 5 %. Минимальный ρ это значение, при котором на этой итерации перенос заметен в 80 % случаев.';
+  $('tbody').innerHTML = res.rows.map((r) =>
+    '<tr><td>' + r.k + '</td><td>' + fmt(r.r, 4) + '</td><td>' + fmt(r.th, 4) + '</td><td>' + fmt(r.pv, 3) + '</td><td>' +
+    (r.pv < 0.05 ? 'заметен' : 'не отличить от шума') + '</td></tr>').join('');
 
-  // сверка с формулой, как на шаге 1
-  let allOk = true;
-  for (let k = 1; k <= p.K; k++) {
-    const se = (1 - theory[k] * theory[k]) / Math.sqrt(p.N);
-    if (Math.abs(sim.r[k] - theory[k]) > 4 * se + 1e-9) allOk = false;
-  }
-  const c = $('check'); c.className = 'check ' + (allOk ? 'ok' : 'bad');
-  c.textContent = allOk ? 'Проверка пройдена: симуляция совпадает с формулой в пределах шума.'
-                        : 'Проверка не пройдена: отклонение больше ожидаемого шума. Возможна ошибка в коде.';
+  const hm = res.heat;
+  $('heat').innerHTML = '<thead><tr><th>ρ \\ N</th>' + hm.Ns.map((n) => '<th>' + n + '</th>').join('') + '</tr></thead><tbody>' +
+    hm.rhos.map((rho, i) => '<tr><td>' + fmt(rho, 2) + '</td>' + hm.power[i].map((v) =>
+      '<td class="hm" style="background:color-mix(in srgb, var(--sim) ' + Math.round(v * 50) + '%, transparent)">' + Math.round(v * 100) + ' %</td>').join('') + '</tr>').join('') + '</tbody>';
 
-  // пороги различимости
-  $('rc').textContent = fmt(rc, 4);
-  $('r80').textContent = fmt(r80(p.N), 4);
-  const drown = theory.findIndex((v, k) => k > 0 && v < rc);
-  $('drown').textContent = drown === -1 ? 'после ' + p.K : String(drown);
-
-  // повторные прогоны с известной истиной
-  const M = p.N <= 5000 ? 400 : 150;
-  const mc = monteCarlo(p.rho, p.kt, p.N, M, p.seed + 3);
-  $('fp').textContent = pct(mc.fp);
-  $('pw').textContent = pct(mc.power);
-  $('rmin').textContent = fmt(Math.pow(r80(p.N), 1 / p.kt), 3);
-  $('mcnote').textContent = 'Шаг теста k = ' + p.kt + ', повторных прогонов: ' + M + '. Ложные срабатывания должны быть близки к 5 %. Минимальный ρ это значение, при котором на шаге ' + p.kt + ' перенос заметен в 80 % случаев.';
-
-  // таблица с перестановочным тестом
-  const P = p.N <= 5000 ? 500 : 200, rnd = mulberry32(p.seed + 2);
-  $('tbody').innerHTML = steps.map((k) => {
-    const pv = permP(sim.x0, sim.snaps[k], sim.r[k], P, rnd);
-    return '<tr><td>' + k + '</td><td>' + fmt(sim.r[k], 4) + '</td><td>' + fmt(theory[k], 4) + '</td><td>' +
-      fmt(pv, 3) + '</td><td>' + (pv < 0.05 ? 'заметен' : 'не отличить от шума') + '</td></tr>';
-  }).join('');
-
-  last = { r: sim.r, theory: theory, nul: nul, rc: rc };
+  $('tb3').innerHTML = res.cipherRows.map((r) =>
+    '<tr><td>' + r.name + '</td><td>' + fmt(r.H, 3) + '</td><td>' + fmt(r.chi, 1) + '</td><td>' + num(r.lag, 3) +
+    '</td><td>' + (r.ratio === null ? 'недоступно' : pct(r.ratio)) + '</td></tr>').join('');
+  $('c3').textContent = num(res.c3, 3);
+  $('fc').textContent = pct(res.fc); $('fn').textContent = pct(res.fn);
+  $('rk').textContent = pct(res.rk); $('wk').textContent = pct(res.wk);
+  const hidden = res.fc < 0.15, v = $('verdict3');
+  v.className = 'check ' + (hidden ? 'ok' : 'bad');
+  v.textContent = hidden
+    ? 'Шифротекст неотличим от шума этими тестами: доля «не шум» такая же, как у настоящего шума (около 5 %).'
+    : 'Структура видна: ключ короче сообщения повторяется, и шифротекст отличим от шума. Увеличьте длину ключа до размера сообщения.';
   drawChart();
 }
 
+function run() {
+  const p = readParams();
+  if (worker) worker.terminate();
+  const src = document.getElementById('wsrc').textContent;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  const btn = $('run'); btn.disabled = true;
+  $('prog').style.width = '2%'; $('status').textContent = 'Запуск…';
+  worker.onmessage = (e) => {
+    if (e.data.type === 'progress') {
+      $('prog').style.width = e.data.pct + '%'; $('status').textContent = e.data.label + '…';
+    } else {
+      render(e.data.res);
+      $('prog').style.width = '100%'; $('status').textContent = 'Готово'; btn.disabled = false;
+    }
+  };
+  worker.onerror = () => { $('status').textContent = 'Ошибка в фоновом потоке'; btn.disabled = false; };
+  worker.postMessage(p);
+}
+
 $('run').addEventListener('click', run);
-$('rnd').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * 4294967295); run(); });
+$('rnd').addEventListener('click', () => {
+  $('seed').value = Math.floor(Math.random() * 4294967295);
+  $('kseed').value = Math.floor(Math.random() * 4294967295);
+  run();
+});
 window.addEventListener('resize', drawChart);
+// ---------- Живая сцена: два мира рядом ----------
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeNormal(rnd) {
+  return function () {
+    let u = 0;
+    while (u === 0) u = rnd();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd());
+  };
+}
+function pear(a, b) {
+  const n = a.length; let ma = 0, mb = 0;
+  for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  ma /= n; mb /= n;
+  let sab = 0, saa = 0, sbb = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - ma, db = b[i] - mb;
+    sab += da * db; saa += da * da; sbb += db * db;
+  }
+  return sab / Math.sqrt(saa * sbb);
+}
+const rcritN = (N) => Math.tanh(1.96 / Math.sqrt(N - 3));
+const ease = (u) => u * u * (3 - 2 * u);
+
+const LV = { run: false, t: 0, K: 20, n: 300, rho: 0.8, sigma: 1, sd0: 1, rc: 0.1, u: 0, tStart: 0,
+             x0: null, prevA: null, curA: null, prevB: null, curB: null, rA: [1], rB: [1], randn: null, colors: [] };
+
+// Начальное состояние: обе популяции совпадают
+function liveInit(rho, sigma, K, n, seed) {
+  LV.rho = rho; LV.sigma = sigma; LV.K = K; LV.n = n; LV.t = 0; LV.u = 0; LV.tStart = 0;
+  LV.sd0 = sigma / Math.sqrt(1 - rho * rho);
+  LV.rc = rcritN(n);
+  LV.randn = makeNormal(mulberry32(seed + 500));
+  LV.x0 = new Float64Array(n);
+  for (let i = 0; i < n; i++) LV.x0[i] = LV.sd0 * LV.randn();
+  LV.curA = Float64Array.from(LV.x0); LV.prevA = LV.curA;
+  LV.curB = Float64Array.from(LV.x0); LV.prevB = LV.curB;
+  LV.rA = [1]; LV.rB = [1];
+  // цвет по исходному значению: от синего к оранжевому
+  LV.colors = Array.from(LV.x0, (v) => {
+    const z = Math.max(0, Math.min(1, (v / LV.sd0 + 2.5) / 5));
+    return 'hsl(' + Math.round(215 - 185 * z) + ' 75% 52%)';
+  });
+}
+// Одна итерация: общие случайные добавки для обоих миров
+function liveStep() {
+  const n = LV.n, nA = new Float64Array(n), nB = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const e = LV.randn();
+    nB[i] = LV.rho * LV.curB[i] + LV.sigma * e;   // мир с переносом
+    nA[i] = LV.sd0 * e;                            // нулевой мир: память стёрта
+  }
+  LV.prevA = LV.curA; LV.prevB = LV.curB; LV.curA = nA; LV.curB = nB; LV.t++;
+  LV.rA.push(pear(LV.x0, nA)); LV.rB.push(pear(LV.x0, nB));
+}
+
+function prepCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  return { g: g, w: w, h: h };
+}
+const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function drawScatter(cv, prev, cur, e) {
+  const { g, w, h } = prepCanvas(cv), L = 34, R = 8, T = 8, B = 22, m = 3 * LV.sd0;
+  const X = (v) => L + (Math.max(-m, Math.min(m, v)) + m) / (2 * m) * (w - L - R);
+  const Y = (v) => T + (1 - (Math.max(-m, Math.min(m, v)) + m) / (2 * m)) * (h - T - B);
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = cssv('--line'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(w - R, Y(0)); g.moveTo(X(0), T); g.lineTo(X(0), h - B); g.stroke();
+  g.fillStyle = cssv('--muted'); g.font = '11px system-ui, sans-serif'; g.textAlign = 'center';
+  g.fillText('исходное значение', (L + w - R) / 2, h - 6);
+  g.save(); g.translate(11, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText('значение сейчас', 0, 0); g.restore();
+  // ожидаемая линия: среднее значение при данном исходном
+  const k = Math.pow(LV.rho, LV.t > 0 ? LV.t - 1 + e : 0);
+  g.strokeStyle = cssv('--theory'); g.lineWidth = 1.5; g.setLineDash([5, 4]);
+  g.beginPath(); g.moveTo(X(-m), Y(-m * k)); g.lineTo(X(m), Y(m * k)); g.stroke(); g.setLineDash([]);
+  for (let i = 0; i < LV.n; i++) {
+    g.fillStyle = LV.colors[i];
+    g.beginPath(); g.arc(X(LV.x0[i]), Y(prev[i] + (cur[i] - prev[i]) * e), 2.6, 0, 6.2832); g.fill();
+  }
+}
+
+function drawLiveChart(e) {
+  const { g, w, h } = prepCanvas($('lchart')), L = 44, R = 12, T = 12, B = 28, K = LV.K, t = LV.t;
+  const X = (k) => L + (k / K) * (w - L - R);
+  const Y = (v) => { const c = Math.max(-0.2, Math.min(1, v)); return T + (1 - (c + 0.2) / 1.2) * (h - T - B); };
+  g.clearRect(0, 0, w, h);
+  g.globalAlpha = 0.6; g.fillStyle = cssv('--line');
+  g.fillRect(L, Y(LV.rc), w - L - R, Y(-LV.rc) - Y(LV.rc)); g.globalAlpha = 1;
+  g.font = '12px system-ui, sans-serif'; g.fillStyle = cssv('--muted'); g.strokeStyle = cssv('--line'); g.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach((v) => {
+    g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke();
+    g.textAlign = 'right'; g.fillText(fmt(v, 2), L - 6, Y(v) + 4);
+  });
+  const step = K <= 20 ? 2 : K <= 50 ? 5 : 10; g.textAlign = 'center';
+  for (let k = 0; k <= K; k += step) g.fillText(String(k), X(k), h - 8);
+  // точки до последней зафиксированной, последний отрезок растёт вместе с движением точек
+  const pts = (arr) => {
+    const out = [];
+    for (let k = 0; k < t; k++) out.push([k, arr[k]]);
+    if (t === 0) out.push([0, arr[0]]);
+    else out.push([t - 1 + e, arr[t - 1] + (arr[t] - arr[t - 1]) * e]);
+    return out;
+  };
+  const line = (ps, color, wd, dash) => {
+    g.strokeStyle = color; g.lineWidth = wd; g.setLineDash(dash || []); g.beginPath();
+    ps.forEach((q, i) => (i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1])))); g.stroke(); g.setLineDash([]);
+  };
+  const th = []; for (let k = 0; k <= K; k++) th.push([k, Math.pow(LV.rho, k)]);
+  line(th, cssv('--theory'), 1.5, [5, 4]);
+  const pA = pts(LV.rA), pB = pts(LV.rB);
+  line(pA, cssv('--muted'), 1.8);
+  line(pB, cssv('--sim'), 2);
+  line(pB.map((q, i) => [q[0], q[1] - pA[i][1]]), cssv('--ok'), 1.3);
+  const lb = pB[pB.length - 1];
+  g.fillStyle = cssv('--sim'); g.beginPath(); g.arc(X(lb[0]), Y(lb[1]), 4, 0, 6.2832); g.fill();
+}
+
+function liveDraw() {
+  const e = ease(Math.min(1, LV.u)), t = LV.t;
+  drawScatter($('cvA'), LV.prevA, LV.curA, e);
+  drawScatter($('cvB'), LV.prevB, LV.curB, e);
+  drawLiveChart(e);
+  const lerp = (arr) => (t === 0 ? arr[0] : arr[t - 1] + (arr[t] - arr[t - 1]) * e);
+  const a = lerp(LV.rA), b = lerp(LV.rB);
+  $('lrA').textContent = fmt(a, 3); $('lrB').textContent = fmt(b, 3);
+  $('lt').textContent = t + ' из ' + LV.K; $('lres').textContent = fmt(b - a, 3);
+  $('lst').textContent = Math.abs(b) > LV.rc ? 'Перенос виден' : (t === 0 ? 'Старт' : 'Перенос тонет в шуме');
+}
+
+function liveFrame(now) {
+  if (!LV.run) return;
+  const dur = 1000 / (+$('lspeed').value);
+  if (!LV.tStart) LV.tStart = now;
+  LV.u = (now - LV.tStart) / dur;
+  if (LV.u >= 1) {
+    if (LV.t >= LV.K) { LV.u = 1; LV.run = false; $('lplay').textContent = 'Заново'; liveDraw(); return; }
+    liveStep(); LV.tStart = now; LV.u = 0;
+  }
+  liveDraw();
+  requestAnimationFrame(liveFrame);
+}
+function liveStart(fresh) {
+  if (fresh) {
+    const p = readParams();
+    const n = Math.round(Math.min(1000, Math.max(50, parseFloat($('lpop').value) || 300))); $('lpop').value = n;
+    liveInit(p.rho, p.sigma, p.K, n, p.seed);
+  }
+  LV.run = true; LV.tStart = 0; $('lplay').textContent = 'Пауза';
+  requestAnimationFrame(liveFrame);
+}
+$('lplay').addEventListener('click', () => {
+  if (LV.run) { LV.run = false; $('lplay').textContent = 'Продолжить'; }
+  else liveStart(LV.t >= LV.K);
+});
+$('lreset').addEventListener('click', () => { LV.run = false; liveStart(true); });
+$('lspeed').addEventListener('input', () => { $('lsp').textContent = $('lspeed').value; });
+window.addEventListener('resize', () => { if (LV.x0) liveDraw(); });
 run();
+liveStart(true);
 </script>
 </body>
 </html>
