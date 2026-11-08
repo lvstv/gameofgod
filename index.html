@@ -56,7 +56,7 @@
   .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .scenes { grid-template-columns: 1fr; } }
   canvas.scene { height: 260px; }
-  #lchart, #lchart2 { height: 240px; margin-top: 12px; }
+  #lchart, #lchart2, #lchart3 { height: 240px; margin-top: 12px; }
   .cap { font-size: 14px; margin-bottom: 4px; }
   input[type=range] { padding: 0; }
 </style>
@@ -64,7 +64,7 @@
 <body>
 <main>
   <h1>Лаборатория итерационной модели</h1>
-  <p class="muted">Здесь отдельные механизмы итерационной модели проверяются на симуляции. Сверху две живые сцены, ниже одна кнопка запускает серию расчётов в фоне. Что происходит, объяснено простыми словами внизу страницы.</p>
+  <p class="muted">Здесь отдельные механизмы итерационной модели проверяются на симуляции. Сверху три живые сцены, ниже одна кнопка запускает серию расчётов в фоне. Что происходит, объяснено простыми словами внизу страницы.</p>
   <div class="panel" style="margin-top:12px">
     <p class="group">Что уже есть и что в планах</p>
     <ul style="margin:0">
@@ -74,7 +74,8 @@
       <li><span class="tag">работает</span> Сообщение между уровнями: сигнал, похожий на шум</li>
       <li><span class="tag">работает</span> Смерть как переход и канал «тёмных квантов» (переключатель в живой сцене)</li>
       <li><span class="tag">работает</span> Создатель колб: перемешивание записей между сущностями (вторая живая сцена)</li>
-      <li><span class="tag">в планах</span> Ветвление и слияние ветвей, «связность мира»</li>
+      <li><span class="tag">работает</span> Ветвление и «связность мира» (третья живая сцена)</li>
+      <li><span class="tag">в планах</span> Слияние информации из разных ветвей</li>
     </ul>
   </div>
 
@@ -163,6 +164,39 @@
     </div>
   </div>
 
+  <h2>Живая сцена 3: ветвление и связность мира</h2>
+  <div class="panel">
+    <p class="muted">Ветвление. Мир подчиняется одному закону: следующее состояние однозначно определено предыдущим (для примера взят простой закон с параметром r). При «отскоке» история может пойти иначе: ветка получает крошечный толчок (малое решение, случайная встреча). Каждая линия это одна ветка. Если мир чувствителен к малым причинам, ветки расходятся и открывают много разных судеб. Если мир устойчив, толчок затухает, и судьба остаётся одной.</p>
+    <canvas id="cvT" class="scene" style="height:280px" role="img" aria-label="Дерево ветвей: состояние по времени"></canvas>
+    <canvas id="lchart3" role="img" aria-label="Разброс состояний между ветвями по итерациям"></canvas>
+    <div class="stats">
+      <div class="stat"><span class="muted">Итерация</span><b id="l3t">0</b></div>
+      <div class="stat"><span class="muted">Веток</span><b id="l3n">1</b></div>
+      <div class="stat"><span class="muted">Разброс между ветвями</span><b id="l3sd">0,000</b></div>
+      <div class="stat"><span class="muted">Показатель Ляпунова λ</span><b id="l3ly">—</b></div>
+      <div class="stat"><span class="muted">Мир</span><b id="l3st" style="font-size:17px">—</b></div>
+    </div>
+    <p class="muted" style="margin-top:16px">Связность. Каждая точка внизу это наблюдаемый переход: каким было состояние и каким стало. В настоящей ветке переход всегда подчиняется закону мира, то есть лежит на кривой. Сон-генерация иногда нарушает закон: следующее состояние берётся произвольно. Красная точка это переход, который закон мира не допускает. Критерий связности из модели: расхождения между ветвями должны подчиняться закону, а нарушения указывают на обычную генерацию.</p>
+    <div class="scenes">
+      <div><div class="cap"><b>Настоящая ветка</b> · помечено как нарушение <span id="l3fA">0,0 %</span></div><canvas id="cvE" class="scene" role="img" aria-label="Переходы в настоящей ветке"></canvas></div>
+      <div><div class="cap"><b>Сон-генерация</b> · помечено как нарушение <span id="l3fB">0,0 %</span></div><canvas id="cvF" class="scene" role="img" aria-label="Переходы в сне-генерации"></canvas></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="muted">Проверено переходов в каждой группе</span><b id="l3c">0</b></div>
+      <div class="stat"><span class="muted">Нарушение замечено в одном наблюдении</span><b id="l3d">—</b></div>
+      <div class="stat"><span class="muted">Наблюдений до 95 % уверенности</span><b id="l3m">—</b></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="l3play" type="button">Пауза</button>
+      <button id="l3reset" type="button" class="second">Сначала</button>
+      <label style="width:130px">Закон мира r (2,5–4)<input id="l3r" type="number" min="2.5" max="4" step="0.1" value="3.9"></label>
+      <label style="width:140px">Ветвление за итерацию (0–0,5)<input id="l3pb" type="number" min="0" max="0.5" step="0.05" value="0.15"></label>
+      <label style="width:130px">Толчок ветви<input id="l3dl" type="number" min="0.0001" max="0.1" step="0.0001" value="0.001"></label>
+      <label style="width:140px">Нарушений во сне (0–1)<input id="l3ep" type="number" min="0" max="1" step="0.05" value="0.15"></label>
+      <label style="width:140px">Шум наблюдателя (0–0,05)<input id="l3so" type="number" min="0" max="0.05" step="0.001" value="0.002"></label>
+    </div>
+  </div>
+
   <h2>Затухание переноса</h2>
   <div class="panel">
     <canvas id="chart" role="img" aria-label="График корреляции с переносом, без переноса и зона шума"></canvas>
@@ -226,6 +260,8 @@
     <p>Все сущности на каждой итерации «умирают» и заменяются преемниками. В нулевом мире действует только физика: преемник получает от предшественника лишь долю свойства, заданную обычной наследственностью. В мире с каналом в момент смерти запись свойства с некоторой вероятностью доходит до преемника, и тогда он наследует запись с её точностью вместо обычной наследственности. Канал может потерять часть записей и записывать неточно. Оба мира стартуют с одной популяции и получают одинаковые случайные добавки, поэтому разница между ними это чистый вклад канала. Если канал отключить, миры совпадают и остаток равен нулю. Когда канал хуже обычной наследственности, остаток отрицательный.</p>
     <h3>Создатель колб</h3>
     <p>У каждой сущности три свойства. Записи умерших получает Создатель: в модели он не знает цели и не выбирает лучших, он только перемешивает. В режиме «Обмен свойствами» каждое свойство новой сущности берётся наугад у одной из двух записей, в режиме «Усреднение пары» берётся среднее. Слева для сравнения сущности просто копируются с небольшой мутацией. Страница показывает, что перемешивание даёт на самом деле: усреднение сжимает разнообразие, обмен разрушает прежние связи между свойствами и создаёт новые сочетания, но не новые значения, а превзойти прежнего рекордсмена удаётся только мутации. Режим «Выбор лучшего» добавлен для контраста: там у Создателя есть цель, значения растут, но в самой модели Создатель цели не знает.</p>
+    <h3>Ветвление и связность мира</h3>
+    <p>В примере мир подчиняется одному простому закону, а ветка возникает от крошечного толчка в произвольный момент. Сцена показывает главное условие, при котором ветвление вообще что-то меняет: мир должен быть чувствителен к малым причинам. В чувствительном мире маленькое различие растёт, и ветки расходятся в разные судьбы. В устойчивом мире различие затухает, ветки сходятся, и «отскок» возвращает ту же судьбу. Нижняя часть превращает критерий связности в измерение: переход считается допустимым, если следующее состояние согласуется с законом мира с учётом шума наблюдателя. Сон-генерация иногда нарушает закон, и страница показывает, сколько наблюдений нужно, чтобы нарушение заметить. Ограничение: в настоящем мире нам неизвестен точный закон, и список допустимых и недопустимых переходов приходится задавать самому, а оценка «связно или нет» делается по памяти и задним числом.</p>
     <h3>Нулевая модель и зона шума</h3>
     <p>Нулевая модель это та же картина, но без сохранения: так выглядит ситуация, когда ничего не переносится. Даже тогда случайность иногда создаёт слабую связь. Серый коридор вокруг нуля показывает, как далеко такая случайная связь заходит. Пока линия переноса выше коридора, связь можно считать реальной. Когда она опускается внутрь коридора, отличить её от случайной нельзя.</p>
     <h3>Ложные срабатывания и мощность</h3>
@@ -242,6 +278,9 @@
       <li><span class="tag">установлено</span> Перенос: авторегрессия первого порядка x(t+1) = ρ·x(t) + ε, ε с дисперсией σ². При стационарном старте корреляция через k итераций равна ρ^k, период полураспада ln(0,5)/ln(ρ).</li>
       <li><span class="tag">установлено</span> Живая сцена: на каждой итерации значение сущности обновляется как x(t+1) = c·x(t) + √(1−c²)·ε, где разброс остаётся единичным. В нулевом мире c = φ (обычная наследственность). В мире с каналом c = q, если запись дошла (с вероятностью 1−λ), и c = φ иначе. Средняя связь с исходным значением через t итераций равна ρэфф^t, где ρэфф = (1−λ)·q + λ·φ в мире с каналом и φ в нулевом. ε общие для обоих миров. Остаток равен разности корреляций, значимость остатка оценивается приближённо по разности преобразований Фишера (миры зависимы, оценка консервативна).</li>
       <li><span class="tag">установлено</span> Создатель: потомок x'(j) = f(a(j), b(j)) + μ·ε, где a и b записи двух случайных сущностей. Усреднение f = (a+b)/2 уменьшает дисперсию примерно вдвое за итерацию (мутация добавляет μ²). Обмен свойствами сохраняет распределение каждого свойства, а корреляция между двумя свойствами падает примерно вдвое за итерацию, потому что свойства потомка берутся у разных родителей с вероятностью 1/2. Выбор лучшего f = max(a,b) смещает распределение вверх (отбор). Значение свойства выше прежнего рекорда возможно при обмене и усреднении только за счёт мутации.</li>
+      <li><span class="tag">установлено</span> Ветвление: закон мира f(x) = r·x·(1−x) (логистическое отображение), толчок ветви δ·ε. Различие между ветками растёт примерно как e^(λt) до насыщения, где λ = среднее ln|f′(x)| вдоль траектории (показатель Ляпунова). При r = 4 значение λ равно ln 2, при устойчивой неподвижной точке λ отрицательно.</li>
+      <li><span class="tag">установлено</span> Связность: переход (x, x′) допустим, если |x′ − f(x)| не превосходит допуска 4σ(1+r), где σ шум наблюдателя (шум усиливается законом, поэтому допуск учитывает его). Вероятность заметить хотя бы одно нарушение за m наблюдений равна 1−(1−d)^m, где d доля замеченных нарушений. Число наблюдений до 95 % уверенности равно ln 0,05 / ln(1−d).</li>
+      <li><span class="tag">допущение модели</span> Что ветки образуются от малых толчков по одному закону, что сон-генерация нарушает закон случайно с заданной частотой и что критерий связности применим к реальным наблюдениям. Закон мира здесь игрушечный: страница показывает логику критерия, а не результат о реальности.</li>
       <li><span class="tag">допущение модели</span> Что в момент смерти существует канал записи, что запись заменяет обычную наследственность и что потери и точность описываются двумя числами. Значения λ и q здесь произвольные: страница показывает, что следует из них, а не какими они бывают в реальности.</li>
       <li><span class="tag">установлено</span> Порог значимости 95 %: tanh(1,96/√(N−3)). Порог мощности 80 %: tanh(2,80/√(N−3)) (преобразование Фишера). Корреляция не зависит от масштаба, поэтому σ не влияет на результаты.</li>
       <li><span class="tag">установлено</span> Перестановочный тест: значения перемешиваются, p это доля перемешиваний, где случайная связь не меньше наблюдаемой.</li>
@@ -878,9 +917,132 @@ $('l2play').addEventListener('click', () => {
 $('l2reset').addEventListener('click', () => { LV2.run = false; live2Start(true); });
 $('l2metric').addEventListener('change', () => { if (LV2.A) live2Draw(); });
 window.addEventListener('resize', () => { if (LV2.A) live2Draw(); });
+
+// ---------- Живая сцена 3: ветвление и связность мира ----------
+const LV3 = { run: false, t: 0, K: 20, u: 0, tStart: 0, r: 3.9, lam: 0, br: [], sd: [0], rn: null, ru: null,
+              mA: [], mB: [], nA: 0, fA: 0, nB: 0, fB: 0, MAXB: 200 };
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+function lyapunov(r) {
+  let x = 0.3, sum = 0;
+  for (let i = 0; i < 200; i++) x = r * x * (1 - x);
+  for (let i = 0; i < 5000; i++) { sum += Math.log(Math.max(1e-12, Math.abs(r * (1 - 2 * x)))); x = r * x * (1 - x); }
+  return sum / 5000;
+}
+const stdev = (a) => { let m = 0; a.forEach((v) => (m += v)); m /= a.length; let q = 0; a.forEach((v) => (q += (v - m) * (v - m))); return Math.sqrt(q / a.length); };
+const branchColor = (i) => 'hsl(' + ((i * 47) % 360) + ' 65% 52%)';
+
+function live3Init(K, seed) {
+  LV3.K = K; LV3.t = 0; LV3.u = 0; LV3.tStart = 0;
+  LV3.rn = makeNormal(mulberry32(seed + 2300)); LV3.ru = mulberry32(seed + 2700);
+  LV3.br = [{ t0: 0, xs: [0.3], col: branchColor(0) }]; LV3.sd = [0];
+  LV3.mA = []; LV3.mB = []; LV3.nA = 0; LV3.fA = 0; LV3.nB = 0; LV3.fB = 0;
+  LV3.r = Math.min(4, Math.max(2.5, parseFloat($('l3r').value) || 3.9)); LV3.lam = lyapunov(LV3.r);
+}
+function live3Step() {
+  const rd = (id, lo, hi, def) => { const v = parseFloat($(id).value); return isNaN(v) ? def : Math.min(hi, Math.max(lo, v)); };
+  const r = rd('l3r', 2.5, 4, 3.9), pb = rd('l3pb', 0, 0.5, 0.15), dl = rd('l3dl', 0.0001, 0.1, 0.001);
+  const eps = rd('l3ep', 0, 1, 0.15), so = rd('l3so', 0, 0.05, 0.002);
+  if (r !== LV3.r) { LV3.r = r; LV3.lam = lyapunov(r); }
+  const t1 = LV3.t + 1, cur = LV3.br.slice();
+  cur.forEach((b) => { const x = b.xs[b.xs.length - 1]; b.xs.push(clamp01(r * x * (1 - x))); });   // закон мира
+  cur.forEach((b) => {                                                                               // малый толчок: новая ветка
+    const u = LV3.ru(), e = LV3.rn();
+    if (LV3.br.length < LV3.MAXB && u < pb) LV3.br.push({ t0: t1, xs: [clamp01(b.xs[b.xs.length - 1] + dl * e)], col: branchColor(LV3.br.length) });
+  });
+  LV3.t = t1; LV3.sd.push(stdev(LV3.br.map((b) => b.xs[b.xs.length - 1])));
+  // наблюдаемые переходы: настоящая ветка и сон-генерация
+  const tol = 4 * so * (1 + r) + 1e-6;
+  for (let m = 0; m < 25; m++) {
+    const xa = LV3.ru(), xb = LV3.ru(), fa = r * xa * (1 - xa), fb = r * xb * (1 - xb);
+    const yb = LV3.ru() < eps ? LV3.ru() : fb;                   // сон иногда нарушает закон
+    const oxA = xa + so * LV3.rn(), oyA = fa + so * LV3.rn(), oxB = xb + so * LV3.rn(), oyB = yb + so * LV3.rn();
+    const flA = Math.abs(oyA - r * oxA * (1 - oxA)) > tol, flB = Math.abs(oyB - r * oxB * (1 - oxB)) > tol;
+    LV3.mA.push([oxA, oyA, flA]); LV3.mB.push([oxB, oyB, flB]);
+    LV3.nA++; LV3.nB++; if (flA) LV3.fA++; if (flB) LV3.fB++;
+  }
+  if (LV3.mA.length > 2000) { LV3.mA.splice(0, LV3.mA.length - 2000); LV3.mB.splice(0, LV3.mB.length - 2000); }
+}
+
+function drawTree(e) {
+  const { g, w, h } = prepCanvas($('cvT')), L = 34, R = 8, T = 8, B = 22, K = LV3.K, t = LV3.t;
+  const X = (k) => L + (k / K) * (w - L - R), Y = (v) => T + (1 - v) * (h - T - B);
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = cssv('--line'); g.fillStyle = cssv('--muted'); g.lineWidth = 1; g.font = '11px system-ui, sans-serif';
+  [0, 0.5, 1].forEach((v) => { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(fmt(v, 1), L - 5, Y(v) + 4); });
+  g.textAlign = 'center'; g.fillText('время (итерации)', (L + w - R) / 2, h - 6);
+  const step = K <= 20 ? 2 : K <= 50 ? 5 : 10;
+  for (let k = 0; k <= K; k += step) g.fillText(String(k), X(k), h - 17 + 11);
+  LV3.br.forEach((b) => {
+    const n = b.xs.length; g.strokeStyle = b.col; g.fillStyle = b.col; g.lineWidth = 1.2;
+    if (n === 1) { g.globalAlpha = t === 0 ? 1 : 0.9 * e; g.beginPath(); g.arc(X(b.t0), Y(b.xs[0]), 2.5, 0, 6.2832); g.fill(); g.globalAlpha = 1; return; }
+    g.globalAlpha = 0.75; g.beginPath();
+    for (let k = 0; k < n - 1; k++) (k ? g.lineTo : g.moveTo).call(g, X(b.t0 + k), Y(b.xs[k]));
+    g.lineTo(X(b.t0 + n - 2 + e), Y(b.xs[n - 2] + (b.xs[n - 1] - b.xs[n - 2]) * e)); g.stroke(); g.globalAlpha = 1;
+  });
+}
+function drawSpread(e) {
+  const { g, w, h } = prepCanvas($('lchart3')), L = 44, R = 12, T = 12, B = 28, K = LV3.K, t = LV3.t, a = LV3.sd;
+  const hi = Math.max(0.3, Math.max.apply(null, a) * 1.15);
+  const X = (k) => L + (k / K) * (w - L - R), Y = (v) => T + (1 - Math.min(hi, v) / hi) * (h - T - B);
+  g.clearRect(0, 0, w, h); g.font = '12px system-ui, sans-serif'; g.fillStyle = cssv('--muted'); g.strokeStyle = cssv('--line'); g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const v = hi * i / 4; g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(fmt(v, 2), L - 6, Y(v) + 4); }
+  const step = K <= 20 ? 2 : K <= 50 ? 5 : 10; g.textAlign = 'center';
+  for (let k = 0; k <= K; k += step) g.fillText(String(k), X(k), h - 8);
+  const pts = []; for (let k = 0; k < t; k++) pts.push([k, a[k]]);
+  if (t === 0) pts.push([0, a[0]]); else pts.push([t - 1 + e, a[t - 1] + (a[t] - a[t - 1]) * e]);
+  g.strokeStyle = cssv('--sim'); g.lineWidth = 2; g.beginPath();
+  pts.forEach((q, i) => (i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1])))); g.stroke();
+}
+function drawMap(cv, pts) {
+  const { g, w, h } = prepCanvas(cv), L = 30, R = 8, T = 8, B = 22;
+  const X = (v) => L + clamp01(v) * (w - L - R), Y = (v) => T + (1 - clamp01(v)) * (h - T - B);
+  g.clearRect(0, 0, w, h); g.strokeStyle = cssv('--line'); g.lineWidth = 1; g.strokeRect(L, T, w - L - R, h - T - B);
+  g.fillStyle = cssv('--muted'); g.font = '11px system-ui, sans-serif'; g.textAlign = 'center';
+  g.fillText('было', (L + w - R) / 2, h - 6);
+  g.save(); g.translate(10, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText('стало', 0, 0); g.restore();
+  g.strokeStyle = cssv('--theory'); g.lineWidth = 1.5; g.beginPath();
+  for (let i = 0; i <= 100; i++) { const x = i / 100, y = LV3.r * x * (1 - x); (i ? g.lineTo : g.moveTo).call(g, X(x), Y(y)); } g.stroke();
+  pts.forEach((q) => { g.fillStyle = q[2] ? cssv('--bad') : cssv('--sim'); g.globalAlpha = 0.7; g.beginPath(); g.arc(X(q[0]), Y(q[1]), 2, 0, 6.2832); g.fill(); });
+  g.globalAlpha = 1;
+}
+function live3Draw() {
+  const e = ease(Math.min(1, LV3.u)), t = LV3.t;
+  drawTree(e); drawSpread(e); drawMap($('cvE'), LV3.mA); drawMap($('cvF'), LV3.mB);
+  $('l3t').textContent = t + ' из ' + LV3.K; $('l3n').textContent = String(LV3.br.length);
+  $('l3sd').textContent = fmt(LV3.sd[t], 3); $('l3ly').textContent = fmt(LV3.lam, 3);
+  $('l3st').textContent = LV3.lam > 0.05 ? 'Чувствительный: ветви расходятся' : LV3.lam < -0.05 ? 'Устойчивый: ветви сходятся' : 'На границе устойчивости';
+  const fa = LV3.nA ? LV3.fA / LV3.nA : 0, fb = LV3.nB ? LV3.fB / LV3.nB : 0, d = Math.max(0, fb - fa);
+  $('l3fA').textContent = pct(fa); $('l3fB').textContent = pct(fb); $('l3c').textContent = String(LV3.nA);
+  $('l3d').textContent = LV3.nB ? pct(d) : '—';
+  $('l3m').textContent = d > 0 && d < 1 ? String(Math.ceil(Math.log(0.05) / Math.log(1 - d))) : (d >= 1 ? '1' : '—');
+}
+function live3Frame(now) {
+  if (!LV3.run) return;
+  const dur = 1000 / (+$('lspeed').value);
+  if (!LV3.tStart) LV3.tStart = now;
+  LV3.u = (now - LV3.tStart) / dur;
+  if (LV3.u >= 1) {
+    if (LV3.t >= LV3.K) { LV3.u = 1; LV3.run = false; $('l3play').textContent = 'Заново'; live3Draw(); return; }
+    live3Step(); LV3.tStart = now; LV3.u = 0;
+  }
+  live3Draw();
+  requestAnimationFrame(live3Frame);
+}
+function live3Start(fresh) {
+  if (fresh) { const p = readParams(); live3Init(p.K, p.seed); }
+  LV3.run = true; LV3.tStart = 0; $('l3play').textContent = 'Пауза';
+  requestAnimationFrame(live3Frame);
+}
+$('l3play').addEventListener('click', () => {
+  if (LV3.run) { LV3.run = false; $('l3play').textContent = 'Продолжить'; }
+  else live3Start(LV3.t >= LV3.K);
+});
+$('l3reset').addEventListener('click', () => { LV3.run = false; live3Start(true); });
+window.addEventListener('resize', () => { if (LV3.rn) live3Draw(); });
 run();
 liveStart(true);
 live2Start(true);
+live3Start(true);
 </script>
 </body>
 </html>
