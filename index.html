@@ -56,7 +56,7 @@
   .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .scenes { grid-template-columns: 1fr; } }
   canvas.scene { height: 260px; }
-  #lchart { height: 240px; margin-top: 12px; }
+  #lchart, #lchart2 { height: 240px; margin-top: 12px; }
   .cap { font-size: 14px; margin-bottom: 4px; }
   input[type=range] { padding: 0; }
 </style>
@@ -64,7 +64,7 @@
 <body>
 <main>
   <h1>Лаборатория итерационной модели</h1>
-  <p class="muted">Здесь отдельные механизмы итерационной модели проверяются на симуляции. Сверху живая сцена, ниже одна кнопка запускает серию расчётов в фоне. Что происходит, объяснено простыми словами внизу страницы.</p>
+  <p class="muted">Здесь отдельные механизмы итерационной модели проверяются на симуляции. Сверху две живые сцены, ниже одна кнопка запускает серию расчётов в фоне. Что происходит, объяснено простыми словами внизу страницы.</p>
   <div class="panel" style="margin-top:12px">
     <p class="group">Что уже есть и что в планах</p>
     <ul style="margin:0">
@@ -72,8 +72,8 @@
       <li><span class="tag">работает</span> Живая сцена: два мира рядом</li>
       <li><span class="tag">работает</span> Карта обнаружимости: какой перенос вообще заметен</li>
       <li><span class="tag">работает</span> Сообщение между уровнями: сигнал, похожий на шум</li>
-      <li><span class="tag">в планах</span> Тёмные кванты как канал в момент «смерти»</li>
-      <li><span class="tag">в планах</span> Создатель колб: перемешивание и перенос между сущностями</li>
+      <li><span class="tag">работает</span> Смерть как переход и канал «тёмных квантов» (переключатель в живой сцене)</li>
+      <li><span class="tag">работает</span> Создатель колб: перемешивание записей между сущностями (вторая живая сцена)</li>
       <li><span class="tag">в планах</span> Ветвление и слияние ветвей, «связность мира»</li>
     </ul>
   </div>
@@ -106,29 +106,60 @@
 
   <h2>Живая сцена: два мира</h2>
   <div class="panel">
-    <p class="muted">Каждая точка это линия сущностей с одним свойством. Цвет задан исходным значением и не меняется, высота показывает значение сейчас. Слева ничего не переносится, справа свойство частично сохраняется, а случайные добавки в обоих мирах одинаковые. Если справа цвета выстроены по диагонали, перенос виден. Используются ρ, число итераций и seed из панели выше.</p>
+    <p class="muted">Каждая точка это линия сущностей с одним свойством. Цвет задан исходным значением и не меняется, высота показывает значение сейчас. На каждой итерации все сущности «умирают», и их место занимают новые. Слева только физика: свойство передаётся лишь обычной наследственностью. Справа к физике добавлен канал: в момент смерти запись свойства может дойти до преемника, и такие случаи отмечены кольцом. Случайные добавки в обоих мирах одинаковые, поэтому разница между мирами это вклад канала. Канал можно включать и менять на ходу. Число итераций и seed берутся из панели выше.</p>
     <div class="scenes">
-      <div><div class="cap"><b>Нулевой мир</b> (ничего не переносится) · связь <span id="lrA">1,000</span></div><canvas id="cvA" class="scene" role="img" aria-label="Нулевой мир: сущности без переноса"></canvas></div>
-      <div><div class="cap"><b>Мир с переносом</b> · связь <span id="lrB">1,000</span></div><canvas id="cvB" class="scene" role="img" aria-label="Мир с переносом свойства"></canvas></div>
+      <div><div class="cap"><b>Нулевой мир</b> (только физика) · связь <span id="lrA">1,000</span></div><canvas id="cvA" class="scene" role="img" aria-label="Нулевой мир: сущности без переноса"></canvas></div>
+      <div><div class="cap"><b>Мир с каналом</b> · связь <span id="lrB">1,000</span></div><canvas id="cvB" class="scene" role="img" aria-label="Мир с переносом свойства"></canvas></div>
     </div>
     <canvas id="lchart" role="img" aria-label="Связь с исходным значением по итерациям в обоих мирах"></canvas>
     <div class="legend">
-      <span><span class="sw" style="background:var(--sim)"></span>Мир с переносом</span>
-      <span><span class="sw" style="background:var(--muted)"></span>Нулевой мир</span>
+      <span><span class="sw" style="background:var(--sim)"></span>Мир с каналом</span>
+      <span><span class="sw" style="background:var(--muted)"></span>Нулевой мир (только физика)</span>
       <span><span class="sw" style="background:var(--theory)"></span>Расчёт по формуле</span>
-      <span><span class="sw" style="background:var(--ok)"></span>Остаток (с переносом минус без)</span>
+      <span><span class="sw" style="background:var(--ok)"></span>Остаток (вклад канала)</span>
       <span><span class="sw" style="background:var(--line);height:10px"></span>Зона шума</span>
     </div>
     <div class="stats">
       <div class="stat"><span class="muted">Итерация</span><b id="lt">0</b></div>
       <div class="stat"><span class="muted">Остаток сейчас</span><b id="lres">0,000</b></div>
+      <div class="stat"><span class="muted">Запись дошла</span><b id="lshare">—</b></div>
       <div class="stat"><span class="muted">Состояние</span><b id="lst" style="font-size:17px">—</b></div>
     </div>
     <div class="row" style="margin-top:14px">
       <button id="lplay" type="button">Пауза</button>
       <button id="lreset" type="button" class="second">Сначала</button>
+      <label style="width:150px"><input id="lchan" type="checkbox" checked style="width:auto;margin:0 6px 0 0;vertical-align:middle">Канал включён</label>
+      <label style="width:130px">Потери λ (0–1)<input id="llam" type="number" min="0" max="1" step="0.05" value="0.3"></label>
+      <label style="width:130px">Точность записи q (0–1)<input id="lq" type="number" min="0" max="1" step="0.05" value="0.9"></label>
+      <label style="width:150px">Наследственность φ (0–0,95)<input id="lphi" type="number" min="0" max="0.95" step="0.05" value="0.3"></label>
       <label style="width:130px">Популяция (50–1000)<input id="lpop" type="number" min="50" max="1000" step="50" value="300"></label>
       <label style="flex:1;min-width:170px">Скорость: <span id="lsp">3</span> ит./с<input id="lspeed" type="range" min="1" max="12" step="1" value="3"></label>
+    </div>
+  </div>
+
+  <h2>Живая сцена 2: Создатель перемешивает записи</h2>
+  <div class="panel">
+    <p class="muted">У каждой сущности три свойства. На каждой итерации сущности «умирают», а Создатель получает их записи (канал здесь идеальный, чтобы был виден вклад самого перемешивания) и строит преемников. Слева преемник это копия своего предшественника с небольшой мутацией. Справа Создатель берёт записи двух случайных сущностей и собирает из них новую. По горизонтали первое свойство, по вертикали второе, цвет показывает третье. Вопрос сцены: даёт ли перемешивание новые значения или только тасует имеющиеся. Скорость, популяция, число итераций и seed берутся из сцены выше и панели параметров.</p>
+    <div class="scenes">
+      <div><div class="cap"><b>Без Создателя</b> · разброс <span id="l2sA">1,000</span> · связь свойств <span id="l2cA">0,600</span></div><canvas id="cvC" class="scene" role="img" aria-label="Популяция без Создателя"></canvas></div>
+      <div><div class="cap"><b>С Создателем</b> · разброс <span id="l2sB">1,000</span> · связь свойств <span id="l2cB">0,600</span></div><canvas id="cvD" class="scene" role="img" aria-label="Популяция с Создателем"></canvas></div>
+    </div>
+    <label style="max-width:260px;margin-top:12px">Показать на графике<select id="l2metric"><option value="sd">Разброс первого свойства</option><option value="cr">Связь первого и второго свойств</option><option value="rc">Рекорд первого свойства</option></select></label>
+    <canvas id="lchart2" role="img" aria-label="Показатель популяции по итерациям в обоих мирах"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--sim)"></span>С Создателем</span>
+      <span><span class="sw" style="background:var(--muted)"></span>Без Создателя</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="muted">Итерация</span><b id="l2t">0</b></div>
+      <div class="stat"><span class="muted">Выше прежнего рекорда: без Создателя</span><b id="l2oA">—</b></div>
+      <div class="stat"><span class="muted">Выше прежнего рекорда: с Создателем</span><b id="l2oB">—</b></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="l2play" type="button">Пауза</button>
+      <button id="l2reset" type="button" class="second">Сначала</button>
+      <label style="width:230px">Как Создатель собирает<select id="l2mode"><option value="swap">Обмен свойствами (без цели)</option><option value="blend">Усреднение пары</option><option value="best">Выбор лучшего (с целью, для сравнения)</option></select></label>
+      <label style="width:130px">Мутация μ (0–0,5)<input id="l2mu" type="number" min="0" max="0.5" step="0.01" value="0.05"></label>
     </div>
   </div>
 
@@ -191,8 +222,10 @@
   <div class="panel">
     <h3 style="margin-top:0">Перенос свойства</h3>
     <p>У каждой из N сущностей есть одно число, её свойство. При переходе к следующей итерации оно сохраняется не полностью: часть остаётся, часть заменяется случайностью. Параметр сохранения показывает, какая часть остаётся: при 0 всё стирается, при значениях около 1 свойство почти не меняется. Страница смотрит, насколько связь с исходным значением переживает серию таких переходов.</p>
-    <h3>Живая сцена</h3>
-    <p>Два мира стартуют с одинаковой популяцией и получают одинаковые случайные добавки. Различие одно: в нулевом мире на каждой итерации значение заменяется случайным (память стёрта полностью), а в мире с переносом часть прежнего значения сохраняется. Точки скользят на новую высоту, а цвет напоминает, откуда они начинали. В нулевом мире цветовой порядок рассыпается сразу, в мире с переносом он держится и постепенно размывается. Внизу растёт линия связи с исходным значением для обоих миров, и между ними остаток: он показывает, чем перенос отличается от одной лишь случайности.</p>
+    <h3>Смерть и канал в живой сцене</h3>
+    <p>Все сущности на каждой итерации «умирают» и заменяются преемниками. В нулевом мире действует только физика: преемник получает от предшественника лишь долю свойства, заданную обычной наследственностью. В мире с каналом в момент смерти запись свойства с некоторой вероятностью доходит до преемника, и тогда он наследует запись с её точностью вместо обычной наследственности. Канал может потерять часть записей и записывать неточно. Оба мира стартуют с одной популяции и получают одинаковые случайные добавки, поэтому разница между ними это чистый вклад канала. Если канал отключить, миры совпадают и остаток равен нулю. Когда канал хуже обычной наследственности, остаток отрицательный.</p>
+    <h3>Создатель колб</h3>
+    <p>У каждой сущности три свойства. Записи умерших получает Создатель: в модели он не знает цели и не выбирает лучших, он только перемешивает. В режиме «Обмен свойствами» каждое свойство новой сущности берётся наугад у одной из двух записей, в режиме «Усреднение пары» берётся среднее. Слева для сравнения сущности просто копируются с небольшой мутацией. Страница показывает, что перемешивание даёт на самом деле: усреднение сжимает разнообразие, обмен разрушает прежние связи между свойствами и создаёт новые сочетания, но не новые значения, а превзойти прежнего рекордсмена удаётся только мутации. Режим «Выбор лучшего» добавлен для контраста: там у Создателя есть цель, значения растут, но в самой модели Создатель цели не знает.</p>
     <h3>Нулевая модель и зона шума</h3>
     <p>Нулевая модель это та же картина, но без сохранения: так выглядит ситуация, когда ничего не переносится. Даже тогда случайность иногда создаёт слабую связь. Серый коридор вокруг нуля показывает, как далеко такая случайная связь заходит. Пока линия переноса выше коридора, связь можно считать реальной. Когда она опускается внутрь коридора, отличить её от случайной нельзя.</p>
     <h3>Ложные срабатывания и мощность</h3>
@@ -207,7 +240,9 @@
     <h2 style="margin-top:24px">Формализм и статусы</h2>
     <ul>
       <li><span class="tag">установлено</span> Перенос: авторегрессия первого порядка x(t+1) = ρ·x(t) + ε, ε с дисперсией σ². При стационарном старте корреляция через k итераций равна ρ^k, период полураспада ln(0,5)/ln(ρ).</li>
-      <li><span class="tag">установлено</span> Живая сцена: мир с переносом x(t+1) = ρ·x(t) + σ·ε, нулевой мир x(t+1) = s·ε, где s стационарный разброс σ/√(1−ρ²), ε общие для обоих миров. Остаток равен разности корреляций с исходным значением. Зона шума построена для размера популяции сцены.</li>
+      <li><span class="tag">установлено</span> Живая сцена: на каждой итерации значение сущности обновляется как x(t+1) = c·x(t) + √(1−c²)·ε, где разброс остаётся единичным. В нулевом мире c = φ (обычная наследственность). В мире с каналом c = q, если запись дошла (с вероятностью 1−λ), и c = φ иначе. Средняя связь с исходным значением через t итераций равна ρэфф^t, где ρэфф = (1−λ)·q + λ·φ в мире с каналом и φ в нулевом. ε общие для обоих миров. Остаток равен разности корреляций, значимость остатка оценивается приближённо по разности преобразований Фишера (миры зависимы, оценка консервативна).</li>
+      <li><span class="tag">установлено</span> Создатель: потомок x'(j) = f(a(j), b(j)) + μ·ε, где a и b записи двух случайных сущностей. Усреднение f = (a+b)/2 уменьшает дисперсию примерно вдвое за итерацию (мутация добавляет μ²). Обмен свойствами сохраняет распределение каждого свойства, а корреляция между двумя свойствами падает примерно вдвое за итерацию, потому что свойства потомка берутся у разных родителей с вероятностью 1/2. Выбор лучшего f = max(a,b) смещает распределение вверх (отбор). Значение свойства выше прежнего рекорда возможно при обмене и усреднении только за счёт мутации.</li>
+      <li><span class="tag">допущение модели</span> Что в момент смерти существует канал записи, что запись заменяет обычную наследственность и что потери и точность описываются двумя числами. Значения λ и q здесь произвольные: страница показывает, что следует из них, а не какими они бывают в реальности.</li>
       <li><span class="tag">установлено</span> Порог значимости 95 %: tanh(1,96/√(N−3)). Порог мощности 80 %: tanh(2,80/√(N−3)) (преобразование Фишера). Корреляция не зависит от масштаба, поэтому σ не влияет на результаты.</li>
       <li><span class="tag">установлено</span> Перестановочный тест: значения перемешиваются, p это доля перемешиваний, где случайная связь не меньше наблюдаемой.</li>
       <li><span class="tag">установлено</span> Ложные срабатывания и мощность оцениваются многими повторными прогонами с известной истиной (метод Монте-Карло). Для карты в каждой клетке 120 прогонов.</li>
@@ -543,37 +578,46 @@ function pear(a, b) {
 }
 const rcritN = (N) => Math.tanh(1.96 / Math.sqrt(N - 3));
 const ease = (u) => u * u * (3 - 2 * u);
+const c01 = (v, def) => { v = parseFloat(v); return isNaN(v) ? def : Math.min(1, Math.max(0, v)); };
 
-const LV = { run: false, t: 0, K: 20, n: 300, rho: 0.8, sigma: 1, sd0: 1, rc: 0.1, u: 0, tStart: 0,
-             x0: null, prevA: null, curA: null, prevB: null, curB: null, rA: [1], rB: [1], randn: null, colors: [] };
+const LV = { run: false, t: 0, K: 20, n: 300, phi: 0.3, rc: 0.1, u: 0, tStart: 0, share: 0,
+             x0: null, prevA: null, curA: null, prevB: null, curB: null, ring: null,
+             rA: [1], rB: [1], thA: [1], thB: [1], randn: null, randu: null, colors: [] };
 
-// Начальное состояние: обе популяции совпадают
-function liveInit(rho, sigma, K, n, seed) {
-  LV.rho = rho; LV.sigma = sigma; LV.K = K; LV.n = n; LV.t = 0; LV.u = 0; LV.tStart = 0;
-  LV.sd0 = sigma / Math.sqrt(1 - rho * rho);
+// Начальное состояние: обе популяции совпадают, разброс значений единичный
+function liveInit(phi, K, n, seed) {
+  LV.phi = phi; LV.K = K; LV.n = n; LV.t = 0; LV.u = 0; LV.tStart = 0; LV.share = 0;
   LV.rc = rcritN(n);
   LV.randn = makeNormal(mulberry32(seed + 500));
+  LV.randu = mulberry32(seed + 900);
   LV.x0 = new Float64Array(n);
-  for (let i = 0; i < n; i++) LV.x0[i] = LV.sd0 * LV.randn();
+  for (let i = 0; i < n; i++) LV.x0[i] = LV.randn();
   LV.curA = Float64Array.from(LV.x0); LV.prevA = LV.curA;
   LV.curB = Float64Array.from(LV.x0); LV.prevB = LV.curB;
-  LV.rA = [1]; LV.rB = [1];
-  // цвет по исходному значению: от синего к оранжевому
+  LV.ring = new Uint8Array(n);
+  LV.rA = [1]; LV.rB = [1]; LV.thA = [1]; LV.thB = [1];
   LV.colors = Array.from(LV.x0, (v) => {
-    const z = Math.max(0, Math.min(1, (v / LV.sd0 + 2.5) / 5));
+    const z = Math.max(0, Math.min(1, (v + 2.5) / 5));
     return 'hsl(' + Math.round(215 - 185 * z) + ' 75% 52%)';
   });
 }
-// Одна итерация: общие случайные добавки для обоих миров
+// Одна смена поколений. Канал читается заново на каждом шаге, поэтому его можно менять на ходу.
 function liveStep() {
-  const n = LV.n, nA = new Float64Array(n), nB = new Float64Array(n);
+  const chan = $('lchan').checked, q = c01($('lq').value, 0.9), lam = c01($('llam').value, 0.3);
+  const phi = LV.phi, n = LV.n, nA = new Float64Array(n), nB = new Float64Array(n), ring = new Uint8Array(n);
+  const sA = Math.sqrt(1 - phi * phi), sQ = Math.sqrt(1 - q * q);
+  let got = 0;
   for (let i = 0; i < n; i++) {
-    const e = LV.randn();
-    nB[i] = LV.rho * LV.curB[i] + LV.sigma * e;   // мир с переносом
-    nA[i] = LV.sd0 * e;                            // нулевой мир: память стёрта
+    const e = LV.randn(), u = LV.randu();
+    nA[i] = phi * LV.curA[i] + sA * e;                       // только физика
+    if (chan && u >= lam) { nB[i] = q * LV.curB[i] + sQ * e; ring[i] = 1; got++; }   // запись дошла
+    else nB[i] = phi * LV.curB[i] + sA * e;                  // запись потеряна или канала нет
   }
-  LV.prevA = LV.curA; LV.prevB = LV.curB; LV.curA = nA; LV.curB = nB; LV.t++;
+  const t = LV.t, rhoB = chan ? (1 - lam) * q + lam * phi : phi;
+  LV.prevA = LV.curA; LV.prevB = LV.curB; LV.curA = nA; LV.curB = nB; LV.ring = ring; LV.t++;
+  LV.share = chan ? got / n : 0;
   LV.rA.push(pear(LV.x0, nA)); LV.rB.push(pear(LV.x0, nB));
+  LV.thA.push(LV.thA[t] * phi); LV.thB.push(LV.thB[t] * rhoB);
 }
 
 function prepCanvas(cv) {
@@ -584,8 +628,8 @@ function prepCanvas(cv) {
 }
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-function drawScatter(cv, prev, cur, e) {
-  const { g, w, h } = prepCanvas(cv), L = 34, R = 8, T = 8, B = 22, m = 3 * LV.sd0;
+function drawScatter(cv, prev, cur, th, ring, e) {
+  const { g, w, h } = prepCanvas(cv), L = 34, R = 8, T = 8, B = 22, m = 3;
   const X = (v) => L + (Math.max(-m, Math.min(m, v)) + m) / (2 * m) * (w - L - R);
   const Y = (v) => T + (1 - (Math.max(-m, Math.min(m, v)) + m) / (2 * m)) * (h - T - B);
   g.clearRect(0, 0, w, h);
@@ -594,13 +638,17 @@ function drawScatter(cv, prev, cur, e) {
   g.fillStyle = cssv('--muted'); g.font = '11px system-ui, sans-serif'; g.textAlign = 'center';
   g.fillText('исходное значение', (L + w - R) / 2, h - 6);
   g.save(); g.translate(11, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText('значение сейчас', 0, 0); g.restore();
-  // ожидаемая линия: среднее значение при данном исходном
-  const k = Math.pow(LV.rho, LV.t > 0 ? LV.t - 1 + e : 0);
+  const t = LV.t, k = t > 0 ? th[t - 1] + (th[t] - th[t - 1]) * e : 1;   // ожидаемая линия
   g.strokeStyle = cssv('--theory'); g.lineWidth = 1.5; g.setLineDash([5, 4]);
   g.beginPath(); g.moveTo(X(-m), Y(-m * k)); g.lineTo(X(m), Y(m * k)); g.stroke(); g.setLineDash([]);
   for (let i = 0; i < LV.n; i++) {
+    const px = X(LV.x0[i]), py = Y(prev[i] + (cur[i] - prev[i]) * e);
     g.fillStyle = LV.colors[i];
-    g.beginPath(); g.arc(X(LV.x0[i]), Y(prev[i] + (cur[i] - prev[i]) * e), 2.6, 0, 6.2832); g.fill();
+    g.beginPath(); g.arc(px, py, 2.6, 0, 6.2832); g.fill();
+    if (ring && ring[i] && t > 0 && e < 1) {          // кольцо: запись дошла
+      g.strokeStyle = cssv('--ink'); g.globalAlpha = 0.7 * (1 - e); g.lineWidth = 1;
+      g.beginPath(); g.arc(px, py, 3 + 6 * e, 0, 6.2832); g.stroke(); g.globalAlpha = 1;
+    }
   }
 }
 
@@ -618,8 +666,7 @@ function drawLiveChart(e) {
   });
   const step = K <= 20 ? 2 : K <= 50 ? 5 : 10; g.textAlign = 'center';
   for (let k = 0; k <= K; k += step) g.fillText(String(k), X(k), h - 8);
-  // точки до последней зафиксированной, последний отрезок растёт вместе с движением точек
-  const pts = (arr) => {
+  const pts = (arr) => {   // последний отрезок растёт вместе с движением точек
     const out = [];
     for (let k = 0; k < t; k++) out.push([k, arr[k]]);
     if (t === 0) out.push([0, arr[0]]);
@@ -630,8 +677,8 @@ function drawLiveChart(e) {
     g.strokeStyle = color; g.lineWidth = wd; g.setLineDash(dash || []); g.beginPath();
     ps.forEach((q, i) => (i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1])))); g.stroke(); g.setLineDash([]);
   };
-  const th = []; for (let k = 0; k <= K; k++) th.push([k, Math.pow(LV.rho, k)]);
-  line(th, cssv('--theory'), 1.5, [5, 4]);
+  line(pts(LV.thA), cssv('--muted'), 1.2, [5, 4]);
+  line(pts(LV.thB), cssv('--theory'), 1.5, [5, 4]);
   const pA = pts(LV.rA), pB = pts(LV.rB);
   line(pA, cssv('--muted'), 1.8);
   line(pB, cssv('--sim'), 2);
@@ -642,14 +689,19 @@ function drawLiveChart(e) {
 
 function liveDraw() {
   const e = ease(Math.min(1, LV.u)), t = LV.t;
-  drawScatter($('cvA'), LV.prevA, LV.curA, e);
-  drawScatter($('cvB'), LV.prevB, LV.curB, e);
+  drawScatter($('cvA'), LV.prevA, LV.curA, LV.thA, null, e);
+  drawScatter($('cvB'), LV.prevB, LV.curB, LV.thB, LV.ring, e);
   drawLiveChart(e);
   const lerp = (arr) => (t === 0 ? arr[0] : arr[t - 1] + (arr[t] - arr[t - 1]) * e);
   const a = lerp(LV.rA), b = lerp(LV.rB);
   $('lrA').textContent = fmt(a, 3); $('lrB').textContent = fmt(b, 3);
   $('lt').textContent = t + ' из ' + LV.K; $('lres').textContent = fmt(b - a, 3);
-  $('lst').textContent = Math.abs(b) > LV.rc ? 'Перенос виден' : (t === 0 ? 'Старт' : 'Перенос тонет в шуме');
+  $('lshare').textContent = t > 0 && $('lchan').checked ? pct(LV.share) : '—';
+  // значимость остатка: разность преобразований Фишера (приближённо)
+  const zf = (r) => Math.atanh(Math.max(-0.999, Math.min(0.999, r)));
+  const z = (zf(b) - zf(a)) / Math.sqrt(2 / (LV.n - 3));
+  $('lst').textContent = t === 0 ? 'Старт' : !$('lchan').checked ? 'Канал выключен: миры совпадают'
+    : Math.abs(z) > 1.96 ? 'Канал даёт заметный остаток' : 'Остаток тонет в шуме';
 }
 
 function liveFrame(now) {
@@ -668,7 +720,8 @@ function liveStart(fresh) {
   if (fresh) {
     const p = readParams();
     const n = Math.round(Math.min(1000, Math.max(50, parseFloat($('lpop').value) || 300))); $('lpop').value = n;
-    liveInit(p.rho, p.sigma, p.K, n, p.seed);
+    const phi = Math.min(0.95, c01($('lphi').value, 0.3)); $('lphi').value = phi;
+    liveInit(phi, p.K, n, p.seed);
   }
   LV.run = true; LV.tStart = 0; $('lplay').textContent = 'Пауза';
   requestAnimationFrame(liveFrame);
@@ -680,8 +733,154 @@ $('lplay').addEventListener('click', () => {
 $('lreset').addEventListener('click', () => { LV.run = false; liveStart(true); });
 $('lspeed').addEventListener('input', () => { $('lsp').textContent = $('lspeed').value; });
 window.addEventListener('resize', () => { if (LV.x0) liveDraw(); });
+
+// ---------- Живая сцена 2: Создатель перемешивает записи ----------
+const LV2 = { run: false, t: 0, K: 20, n: 300, u: 0, tStart: 0, A: null, B: null, pA: null, pB: null,
+              mA: { sd: [], cr: [], rc: [] }, mB: { sd: [], cr: [], rc: [] }, oA: 0, oB: 0, rn: null, ru: null };
+
+// разброс первого свойства, связь первого и второго, рекорд (максимум) первого
+function stats3(P, n) {
+  let s1 = 0, s2 = 0, mx = -Infinity;
+  for (let i = 0; i < n; i++) { s1 += P[3 * i]; s2 += P[3 * i + 1]; if (P[3 * i] > mx) mx = P[3 * i]; }
+  s1 /= n; s2 /= n;
+  let v1 = 0, v2 = 0, c = 0;
+  for (let i = 0; i < n; i++) { const d1 = P[3 * i] - s1, d2 = P[3 * i + 1] - s2; v1 += d1 * d1; v2 += d2 * d2; c += d1 * d2; }
+  return { sd: Math.sqrt(v1 / n), cr: c / Math.sqrt(v1 * v2), rc: mx };
+}
+function pushStats(m, st) { m.sd.push(st.sd); m.cr.push(st.cr); m.rc.push(st.rc); }
+
+// Начальная популяция: свойства 1 и 2 связаны (около 0,6), свойство 3 независимо
+function live2Init(n, K, seed) {
+  LV2.n = n; LV2.K = K; LV2.t = 0; LV2.u = 0; LV2.tStart = 0; LV2.oA = 0; LV2.oB = 0;
+  LV2.rn = makeNormal(mulberry32(seed + 1300)); LV2.ru = mulberry32(seed + 1700);
+  const P = new Float64Array(3 * n);
+  for (let i = 0; i < n; i++) {
+    const z1 = LV2.rn(); P[3 * i] = z1; P[3 * i + 1] = 0.6 * z1 + 0.8 * LV2.rn(); P[3 * i + 2] = LV2.rn();
+  }
+  LV2.A = Float64Array.from(P); LV2.B = Float64Array.from(P); LV2.pA = LV2.A; LV2.pB = LV2.B;
+  LV2.mA = { sd: [], cr: [], rc: [] }; LV2.mB = { sd: [], cr: [], rc: [] };
+  pushStats(LV2.mA, stats3(P, n)); pushStats(LV2.mB, stats3(P, n));
+}
+// Одна смена поколений. Режим и мутацию читаем заново на каждом шаге.
+function live2Step() {
+  const mode = $('l2mode').value, mu = Math.min(0.5, Math.max(0, parseFloat($('l2mu').value) || 0));
+  const n = LV2.n, cA = LV2.A, cB = LV2.B, nA = new Float64Array(3 * n), nB = new Float64Array(3 * n);
+  const sA = stats3(cA, n), sB = stats3(cB, n);
+  let oA = 0, oB = 0;
+  for (let i = 0; i < n; i++) {
+    const a = Math.floor(LV2.ru() * n), b = Math.floor(LV2.ru() * n);   // две случайные записи
+    for (let j = 0; j < 3; j++) {
+      const e = LV2.rn(), r = LV2.ru();
+      nA[3 * i + j] = cA[3 * i + j] + mu * e;                          // без Создателя: копия с мутацией
+      const x = cB[3 * a + j], y = cB[3 * b + j];
+      const v = mode === 'blend' ? (x + y) / 2 : mode === 'best' ? Math.max(x, y) : (r < 0.5 ? x : y);
+      nB[3 * i + j] = v + mu * e;                                      // с Создателем
+    }
+    if (nA[3 * i] > sA.rc) oA++;
+    if (nB[3 * i] > sB.rc) oB++;
+  }
+  LV2.pA = cA; LV2.pB = cB; LV2.A = nA; LV2.B = nB; LV2.t++;
+  LV2.oA = oA / n; LV2.oB = oB / n;
+  pushStats(LV2.mA, stats3(nA, n)); pushStats(LV2.mB, stats3(nB, n));
+}
+
+function drawScatter2(cv, prev, cur, e) {
+  const { g, w, h } = prepCanvas(cv), L = 34, R = 8, T = 8, B = 22, m = 4;
+  const X = (v) => L + (Math.max(-m, Math.min(m, v)) + m) / (2 * m) * (w - L - R);
+  const Y = (v) => T + (1 - (Math.max(-m, Math.min(m, v)) + m) / (2 * m)) * (h - T - B);
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = cssv('--line'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(w - R, Y(0)); g.moveTo(X(0), T); g.lineTo(X(0), h - B); g.stroke();
+  g.fillStyle = cssv('--muted'); g.font = '11px system-ui, sans-serif'; g.textAlign = 'center';
+  g.fillText('свойство 1', (L + w - R) / 2, h - 6);
+  g.save(); g.translate(11, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText('свойство 2', 0, 0); g.restore();
+  for (let i = 0; i < LV2.n; i++) {
+    const px = prev[3 * i] + (cur[3 * i] - prev[3 * i]) * e, py = prev[3 * i + 1] + (cur[3 * i + 1] - prev[3 * i + 1]) * e;
+    const z = Math.max(0, Math.min(1, (cur[3 * i + 2] + 2.5) / 5));
+    g.fillStyle = 'hsl(' + Math.round(215 - 185 * z) + ' 75% 52%)';
+    g.beginPath(); g.arc(X(px), Y(py), 2.6, 0, 6.2832); g.fill();
+  }
+}
+
+function drawLiveChart2(e) {
+  const { g, w, h } = prepCanvas($('lchart2')), L = 44, R = 12, T = 12, B = 28, K = LV2.K, t = LV2.t;
+  const key = $('l2metric').value, A = LV2.mA[key], Bm = LV2.mB[key];
+  let lo, hi;
+  if (key === 'cr') { lo = -0.2; hi = 1; }
+  else {
+    const all = A.concat(Bm); lo = key === 'sd' ? 0 : Math.min.apply(null, all) - 0.2; hi = Math.max.apply(null, all) * 1.1 + (key === 'rc' ? 0.2 : 0);
+    if (hi - lo < 0.5) hi = lo + 0.5;
+  }
+  const X = (k) => L + (k / K) * (w - L - R);
+  const Y = (v) => { const c = Math.max(lo, Math.min(hi, v)); return T + (1 - (c - lo) / (hi - lo)) * (h - T - B); };
+  g.clearRect(0, 0, w, h);
+  g.font = '12px system-ui, sans-serif'; g.fillStyle = cssv('--muted'); g.strokeStyle = cssv('--line'); g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4;
+    g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke();
+    g.textAlign = 'right'; g.fillText(fmt(v, 2), L - 6, Y(v) + 4);
+  }
+  const step = K <= 20 ? 2 : K <= 50 ? 5 : 10; g.textAlign = 'center';
+  for (let k = 0; k <= K; k += step) g.fillText(String(k), X(k), h - 8);
+  const pts = (arr) => {
+    const out = [];
+    for (let k = 0; k < t; k++) out.push([k, arr[k]]);
+    if (t === 0) out.push([0, arr[0]]);
+    else out.push([t - 1 + e, arr[t - 1] + (arr[t] - arr[t - 1]) * e]);
+    return out;
+  };
+  const line = (ps, color, wd) => {
+    g.strokeStyle = color; g.lineWidth = wd; g.beginPath();
+    ps.forEach((q, i) => (i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1])))); g.stroke();
+  };
+  line(pts(A), cssv('--muted'), 1.8);
+  const pB = pts(Bm); line(pB, cssv('--sim'), 2);
+  const lb = pB[pB.length - 1];
+  g.fillStyle = cssv('--sim'); g.beginPath(); g.arc(X(lb[0]), Y(lb[1]), 4, 0, 6.2832); g.fill();
+}
+
+function live2Draw() {
+  const e = ease(Math.min(1, LV2.u)), t = LV2.t;
+  drawScatter2($('cvC'), LV2.pA, LV2.A, e);
+  drawScatter2($('cvD'), LV2.pB, LV2.B, e);
+  drawLiveChart2(e);
+  const lerp = (arr) => (t === 0 ? arr[0] : arr[t - 1] + (arr[t] - arr[t - 1]) * e);
+  $('l2sA').textContent = fmt(lerp(LV2.mA.sd), 3); $('l2sB').textContent = fmt(lerp(LV2.mB.sd), 3);
+  $('l2cA').textContent = fmt(lerp(LV2.mA.cr), 3); $('l2cB').textContent = fmt(lerp(LV2.mB.cr), 3);
+  $('l2t').textContent = t + ' из ' + LV2.K;
+  $('l2oA').textContent = t > 0 ? pct(LV2.oA) : '—'; $('l2oB').textContent = t > 0 ? pct(LV2.oB) : '—';
+}
+function live2Frame(now) {
+  if (!LV2.run) return;
+  const dur = 1000 / (+$('lspeed').value);
+  if (!LV2.tStart) LV2.tStart = now;
+  LV2.u = (now - LV2.tStart) / dur;
+  if (LV2.u >= 1) {
+    if (LV2.t >= LV2.K) { LV2.u = 1; LV2.run = false; $('l2play').textContent = 'Заново'; live2Draw(); return; }
+    live2Step(); LV2.tStart = now; LV2.u = 0;
+  }
+  live2Draw();
+  requestAnimationFrame(live2Frame);
+}
+function live2Start(fresh) {
+  if (fresh) {
+    const p = readParams();
+    const n = Math.round(Math.min(1000, Math.max(50, parseFloat($('lpop').value) || 300)));
+    live2Init(n, p.K, p.seed);
+  }
+  LV2.run = true; LV2.tStart = 0; $('l2play').textContent = 'Пауза';
+  requestAnimationFrame(live2Frame);
+}
+$('l2play').addEventListener('click', () => {
+  if (LV2.run) { LV2.run = false; $('l2play').textContent = 'Продолжить'; }
+  else live2Start(LV2.t >= LV2.K);
+});
+$('l2reset').addEventListener('click', () => { LV2.run = false; live2Start(true); });
+$('l2metric').addEventListener('change', () => { if (LV2.A) live2Draw(); });
+window.addEventListener('resize', () => { if (LV2.A) live2Draw(); });
 run();
 liveStart(true);
+live2Start(true);
 </script>
 </body>
 </html>
